@@ -38,6 +38,23 @@ const moveNewGo = document.getElementById("moveNewGo");
 
 const NEW_OPTION = "__new__";
 
+// Lucide icons (https://lucide.dev, ISC). Inlined as SVG to avoid a build step.
+// stroke="currentColor" so they take the button's text color.
+const ICON_SVG = (paths) =>
+  `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" ` +
+  `stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+
+const ICON_EDIT = ICON_SVG(
+  '<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>' +
+    '<path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>'
+); // square-pen
+
+const ICON_TRASH = ICON_SVG(
+  '<path d="M10 11v6"/><path d="M14 11v6"/>' +
+    '<path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>' +
+    '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
+); // trash-2
+
 // Name is mandatory: both create buttons stay disabled until the
 // field holds non-whitespace text.
 function syncButtons() {
@@ -117,12 +134,12 @@ async function render() {
 
     const edit = document.createElement("button");
     edit.className = "edit";
-    edit.textContent = "✎"; // ✎
+    edit.innerHTML = ICON_EDIT; // square-pen
     edit.title = "Rename workspace";
 
     const x = document.createElement("button");
     x.className = "x";
-    x.textContent = "✕"; // ✕
+    x.innerHTML = ICON_TRASH; // trash-2
     x.title = "Delete workspace";
 
     // Click the row -> switch (swap tabs). Active row does nothing.

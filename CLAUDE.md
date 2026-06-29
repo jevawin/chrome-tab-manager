@@ -203,3 +203,8 @@ disabled) and `?state=empty` (no workspaces). The harness uses a stubbed
 - Plain functions, async/await, early returns.
 - Comments explain *why*, not *what*, especially around the swap and the guard.
 - Keep the popup dumb. New behaviour belongs in `background.js`.
+- Icons are inlined [Lucide](https://lucide.dev) SVGs (ISC), `stroke="currentColor"`
+  so they inherit text color. No icon dependency, no build step. In `popup.js`
+  they are SVG strings (`ICON_EDIT`/`ICON_TRASH`); in `popup.html` they are inline
+  `<svg>`; the move-to dropdown indicator is a `list-end` data-URI background on
+  the `<select>` (`appearance: none`).

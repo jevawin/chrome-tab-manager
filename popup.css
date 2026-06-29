@@ -34,7 +34,8 @@ body {
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
-  padding: 0 2px;
+  /* Flush left so headers, inputs, and the current-tab icon share one edge. */
+  padding: 0;
 }
 
 /* Create new workspace */
@@ -53,10 +54,18 @@ body {
 }
 .move-label.muted-label { color: var(--muted); font-style: italic; }
 .move-pick {
-  flex: 0 0 auto; max-width: 130px;
-  background: #18181b; color: var(--fg);
+  flex: 0 0 auto; max-width: 150px;
+  appearance: none; -webkit-appearance: none;
+  color: var(--fg);
+  background-color: #18181b;
+  /* Lucide list-end as the dropdown indicator (native chevron removed). */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%239a9aa2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M16 5H3'/%3E%3Cpath d='M16 12H3'/%3E%3Cpath d='M9 19H3'/%3E%3Cpath d='m16 16-3 3 3 3'/%3E%3Cpath d='M21 5v12a2 2 0 0 1-2 2h-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px 16px;
   border: 1px solid var(--line); border-radius: 6px;
-  padding: 5px 8px; font: inherit; font-size: 12px;
+  /* Equal 10px gap: text from the left edge, icon from the right edge. */
+  padding: 6px 34px 6px 10px; font: inherit; font-size: 12px;
 }
 .move-pick:disabled { opacity: 0.4; }
 .move-new { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
@@ -87,12 +96,14 @@ body {
 .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .row-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-.count { color: var(--muted); font-size: 11px; text-align: left; }
+/* Fixed-width slot so the counts left-align as a clean column. */
+.count { color: var(--muted); font-size: 11px; text-align: left; min-width: 52px; }
 .row-icons { display: flex; align-items: center; gap: 1px; }
 
 .edit, .x {
+  display: inline-flex; align-items: center; justify-content: center;
   border: 0; background: transparent; color: var(--muted);
-  cursor: pointer; padding: 2px 5px; border-radius: 5px; font-size: 14px;
+  cursor: pointer; padding: 4px; border-radius: 5px;
   opacity: 0; transition: opacity 0.1s;
 }
 .item:hover .edit, .item:hover .x,
@@ -120,9 +131,11 @@ input:focus { outline: none; border-color: var(--accent); }
 button { font: inherit; }
 
 .primary {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   background: var(--accent); color: #0b1220; border: 0;
   border-radius: 6px; padding: 7px 10px; cursor: pointer; font-weight: 600;
   white-space: nowrap;
 }
+.btn-icon { flex: 0 0 auto; }
 .primary:hover:not(:disabled) { filter: brightness(1.08); }
 .primary:disabled { opacity: 0.4; cursor: not-allowed; }
