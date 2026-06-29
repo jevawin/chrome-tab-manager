@@ -59,13 +59,15 @@ async function snapshotInto(wsId, winId) {
 // so they stay testable without the Chrome runtime. Callers persist the result.
 
 function buildMovedState(state, targetId, tab) {
-  const workspaces = state.workspaces.map((w) =>
-    w.id === targetId ? { ...w, tabs: [...(w.tabs || []), tab] } : w
-  );
   if (!state.workspaces.some((w) => w.id === targetId)) {
     throw new Error("target not found");
   }
-  return { ...state, workspaces };
+  return {
+    ...state,
+    workspaces: state.workspaces.map((w) =>
+      w.id === targetId ? { ...w, tabs: [...(w.tabs || []), tab] } : w
+    ),
+  };
 }
 
 function buildNewWorkspaceState(state, name, tab, id) {
