@@ -5,6 +5,7 @@
   --line: #34343a;
   --accent: #6ea8fe;
   --danger: #ff7a7a;
+  --green: #5fd39a;
 }
 
 * { box-sizing: border-box; }
@@ -99,18 +100,23 @@ body {
 .label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .row-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-/* Fixed-width slot so the counts left-align as a clean column. */
-.count { color: var(--muted); text-align: left; min-width: 56px; }
+/* Tab count: folder mark + number, in a fixed slot so counts left-align. */
+.count {
+  display: inline-flex; align-items: center; gap: 5px;
+  color: var(--muted); min-width: 44px;
+  transition: color 0.1s;
+}
+.count svg { width: 16px; height: 16px; flex: 0 0 auto; }
+/* Row hover tints the count (mark + number) green. */
+.item:hover .count { color: var(--green); }
 .row-icons { display: flex; align-items: center; gap: 1px; }
 
+/* Always visible (no hover reveal). */
 .edit, .x {
   display: inline-flex; align-items: center; justify-content: center;
   border: 0; background: transparent; color: var(--muted);
   cursor: pointer; padding: 4px; border-radius: 5px;
-  opacity: 0; transition: opacity 0.1s;
 }
-.item:hover .edit, .item:hover .x,
-.item.active .edit, .item.active .x { opacity: 1; }
 .edit:hover { color: var(--accent); background: #23272f; }
 .x:hover { color: var(--danger); background: #2f2326; }
 

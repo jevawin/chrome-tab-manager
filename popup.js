@@ -55,6 +55,10 @@ const ICON_TRASH = ICON_SVG(
     '<path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>'
 ); // trash-2
 
+const ICON_FOLDER = ICON_SVG(
+  '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
+); // folder — the extension's mark, used as the tab-count glyph
+
 // Name is mandatory: both create buttons stay disabled until the
 // field holds non-whitespace text.
 function syncButtons() {
@@ -127,10 +131,12 @@ async function render() {
     label.className = "label";
     label.textContent = ws.name;
 
+    // Tab count shown as the folder mark + the number (no "tabs" word).
     const count = document.createElement("span");
     count.className = "count";
     const n = ws.tabs ? ws.tabs.length : 0;
-    count.textContent = n === 1 ? "1 tab" : n + " tabs";
+    count.innerHTML = ICON_FOLDER + `<span class="count-n">${n}</span>`;
+    count.title = n === 1 ? "1 tab" : n + " tabs";
 
     const edit = document.createElement("button");
     edit.className = "edit";
