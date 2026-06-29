@@ -129,7 +129,7 @@ name field has non-whitespace text; `create`/`createEmpty` reject blank names.
 - `moveTabToNew` `{ name }` -> creates a new workspace seeded with the active tab,
   then stashes it. No swap. Stays in the current workspace.
 - `delete` `{ id }` -> removes a workspace; clears active if it was active
-- `rename` `{ id, name }` -> renames (no UI yet; handler exists)
+- `rename` `{ id, name }` -> renames a workspace (inline pencil-edit in the popup)
 
 ## Run and test
 
@@ -145,8 +145,10 @@ Manual smoke test for the core guard:
 4. In A, open a new tab. Switch to B, then back to A. The new tab must still be
    in A. If it is, the swap guard works.
 
-There are no automated tests yet. If you add logic, add a lightweight test
-harness rather than growing the manual list.
+Pure state logic has a small Node test (`tests/move.test.js`). Run it with
+`node --test` (auto-discovers test files; `node --test tests/` fails on Node 24).
+Code that touches `chrome.*` APIs is verified by the manual smoke steps above —
+keep pure, testable logic separate from the Chrome calls so it can be unit-tested.
 
 ## Known limitations (v1)
 
