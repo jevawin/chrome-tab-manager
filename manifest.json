@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Spaces — Workspace Swap",
+  "version": "0.1.0",
+  "description": "Safari-style workspaces. Switch a workspace to swap all tabs in the window. Live session state.",
+  "permissions": ["tabs", "storage"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Workspaces"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

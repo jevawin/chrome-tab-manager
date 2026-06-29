@@ -1,0 +1,27 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <div class="head">Workspaces</div>
+
+    <ul id="list" class="list"></ul>
+
+    <div class="add">
+      <div class="add-head">Create new workspace</div>
+      <input id="name" type="text" placeholder="Workspace name" maxlength="40" />
+      <div class="add-actions">
+        <button id="save" class="primary" disabled title="Save the current tabs as a new workspace">
+          Save current tabs
+        </button>
+        <button id="empty" class="primary" disabled title="Open a fresh, empty workspace">
+          Start empty
+        </button>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+  </body>
+</html>
