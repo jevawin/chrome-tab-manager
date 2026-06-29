@@ -19,7 +19,8 @@ body {
   min-width: 360px;
   max-width: 800px;
   margin: 0;
-  font: 13px/1.4 -apple-system, system-ui, sans-serif;
+  /* 16px floor for legibility; nothing in the popup goes below it. */
+  font: 16px/1.4 -apple-system, system-ui, sans-serif;
   background: var(--bg);
   color: var(--fg);
 }
@@ -30,7 +31,7 @@ body {
 .section-head {
   margin: 0 0 8px;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 16px;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   color: var(--muted);
@@ -50,11 +51,13 @@ body {
 .move-label {
   flex: 1; min-width: 0;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  font-size: 12px;
 }
 .move-label.muted-label { color: var(--muted); font-style: italic; }
 .move-pick {
-  flex: 0 0 auto; max-width: 150px;
+  flex: 0 0 auto;
+  /* Size to the shown "Move to…" text, not the widest option (Chrome 123+).
+     Falls back to option-width sizing on older Chrome. */
+  field-sizing: content;
   appearance: none; -webkit-appearance: none;
   color: var(--fg);
   background-color: #18181b;
@@ -64,13 +67,13 @@ body {
   background-position: right 10px center;
   background-size: 16px 16px;
   border: 1px solid var(--line); border-radius: 6px;
-  /* Equal 10px gap: text from the left edge, icon from the right edge. */
-  padding: 6px 34px 6px 10px; font: inherit; font-size: 12px;
+  /* right pad = 8px text-to-icon gap + 16px icon + 10px icon-to-edge. */
+  padding: 6px 34px 6px 10px; font: inherit;
 }
 .move-pick:disabled { opacity: 0.4; }
 .move-new { display: flex; gap: 6px; align-items: center; margin-top: 8px; }
-.move-new input { flex: 1; font-size: 12px; padding: 6px 8px; }
-.move-new .primary { padding: 6px 10px; font-size: 12px; }
+.move-new input { flex: 1; padding: 6px 8px; }
+.move-new .primary { padding: 6px 10px; }
 
 /* Workspaces list */
 .list { list-style: none; margin: 0; padding: 0; }
@@ -97,7 +100,7 @@ body {
 
 .row-right { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
 /* Fixed-width slot so the counts left-align as a clean column. */
-.count { color: var(--muted); font-size: 11px; text-align: left; min-width: 52px; }
+.count { color: var(--muted); text-align: left; min-width: 64px; }
 .row-icons { display: flex; align-items: center; gap: 1px; }
 
 .edit, .x {
