@@ -93,9 +93,14 @@ async function render() {
     const n = ws.tabs ? ws.tabs.length : 0;
     count.textContent = n === 1 ? "1 tab" : n + " tabs";
 
+    const edit = document.createElement("button");
+    edit.className = "edit";
+    edit.textContent = "✎"; // ✎
+    edit.title = "Rename workspace";
+
     const x = document.createElement("button");
     x.className = "x";
-    x.textContent = "\u2715"; // ✕
+    x.textContent = "✕"; // ✕
     x.title = "Delete workspace";
 
     // Click the row -> switch (swap tabs). Active row does nothing.
@@ -105,6 +110,34 @@ async function render() {
       window.close();
     });
 
+    // Inline rename: swap the label for an input in place.
+    edit.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const input = document.createElement("input");
+      input.className = "rename-input";
+      input.value = ws.name;
+      input.maxLength = 40;
+      label.replaceWith(input);
+      input.focus();
+      input.select();
+
+      let done = false;
+      const commit = async () => {
+        if (done) return;
+        done = true;
+        await send({ type: "rename", id: ws.id, name: input.value });
+        render();
+      };
+      const cancel = () => { if (!done) { done = true; render(); } };
+
+      input.addEventListener("click", (ev) => ev.stopPropagation());
+      input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") commit();
+        if (ev.key === "Escape") cancel();
+      });
+      input.addEventListener("blur", commit);
+    });
+
     // Delete without triggering the switch.
     x.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -112,7 +145,7 @@ async function render() {
       render();
     });
 
-    li.append(dot, label, count, x);
+    li.append(dot, label, count, edit, x);
     listEl.appendChild(li);
   }
 }

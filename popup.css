@@ -75,11 +75,22 @@ body {
 .label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .count { color: var(--muted); font-size: 11px; }
 
-.x {
+.edit, .x {
   border: 0; background: transparent; color: var(--muted);
   cursor: pointer; padding: 2px 6px; border-radius: 5px; font-size: 14px;
+  opacity: 0; transition: opacity 0.1s;
 }
+.item:hover .edit, .item:hover .x,
+.item.active .edit, .item.active .x { opacity: 1; }
+.edit:hover { color: var(--accent); background: #23272f; }
 .x:hover { color: var(--danger); background: #2f2326; }
+
+.rename-input {
+  flex: 1; min-width: 0;
+  background: #18181b; color: var(--fg);
+  border: 1px solid var(--accent); border-radius: 5px;
+  padding: 4px 6px; font: inherit;
+}
 
 .empty { color: var(--muted); padding: 8px 8px 12px; font-style: italic; }
 
