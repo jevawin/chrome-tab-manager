@@ -1,4 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#808086" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-  <!-- Lucide "folder" (ISC). Neutral grey to read on both light and dark toolbars. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0.75 0.75 22.5 22.5" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Lucide "folder" (ISC). White, tightened viewBox so it fills the 16px
+       toolbar canvas like Chrome's own icons. White reads on a dark toolbar;
+       on a light Chrome theme it would disappear (static icons can't track the
+       theme, theme-adaptive via chrome.action.setIcon is a launch-day follow-up). -->
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
 </svg>

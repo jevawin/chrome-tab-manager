@@ -46,9 +46,11 @@ Repo: `git@github.com:jevawin/chrome-tab-manager.git`.
 - `README.md` — user-facing load and usage notes.
 - `tests/move.test.js` — Node unit test for the pure state helpers.
 - `test/harness.html` — local visual test harness for the popup (gitignored).
-- `icons/` — toolbar/extension icon. `folder.svg` is the Lucide source (neutral
-  grey, theme-independent); `icon{16,32,48,128}.png` are rasterized from it with
-  `rsvg-convert` and referenced by the manifest. Regenerate:
+- `icons/` — toolbar/extension icon. `folder.svg` is the Lucide source (white,
+  viewBox tightened to fill the 16px canvas; reads on dark toolbars, not light —
+  theme-adaptive is a launch follow-up via `chrome.action.setIcon`).
+  `icon{16,32,48,128}.png` are rasterized from it with `rsvg-convert` and
+  referenced by the manifest. Regenerate:
   `cd icons && for s in 16 32 48 128; do rsvg-convert -w $s -h $s folder.svg -o icon$s.png; done`
 
 The popup holds no logic beyond rendering and sending messages. All decisions
