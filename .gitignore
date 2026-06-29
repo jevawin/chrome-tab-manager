@@ -1,1 +1,4 @@
 .DS_Store
+
+# Local visual test harness for the popup (stubs chrome.* with sample data)
+/test/harness.html
