@@ -40,7 +40,10 @@ function renderMoveStrip(workspaces, activeWorkspaceId, activeTab) {
 
   if (!activeTab.trackable) {
     moveLabel.textContent = "Can't move this page";
+    moveLabel.title = "";
     moveLabel.classList.add("muted-label");
+    // Clear stale options so the disabled picker doesn't show old workspaces.
+    movePick.innerHTML = "";
     movePick.disabled = true;
     return;
   }
@@ -138,7 +141,7 @@ moveNewName.addEventListener("keydown", (e) => {
 
 moveNewGo.addEventListener("click", async () => {
   if (moveNewGo.disabled) return;
-  await send({ type: "moveTabToNew", name: moveNewName.value });
+  await send({ type: "moveTabToNew", name: moveNewName.value.trim() });
   render();
 });
 
