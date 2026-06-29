@@ -4,6 +4,7 @@
        on a light Chrome theme it would disappear (static icons can't track the
        theme, theme-adaptive via chrome.action.setIcon is a launch-day follow-up). -->
   <path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>
-  <!-- Highlighted (solid) tab flap, derived from the folder geometry. -->
-  <path fill="#6ea8fe" stroke="none" d="M2 6 V5 A2 2 0 0 1 4 3 H7.93 A2 2 0 0 1 9.6 3.9 L10.41 5.1 A2 2 0 0 0 12.1 6 Z"/>
+  <!-- Solid tab flap, derived from the folder geometry. White to match the rest
+       of the mark (and the in-popup glyph). -->
+  <path fill="#ffffff" stroke="none" d="M2 6 V5 A2 2 0 0 1 4 3 H7.93 A2 2 0 0 1 9.6 3.9 L10.41 5.1 A2 2 0 0 0 12.1 6 Z"/>
 </svg>
