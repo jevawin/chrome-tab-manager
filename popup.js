@@ -132,8 +132,10 @@ async function render() {
 
       input.addEventListener("click", (ev) => ev.stopPropagation());
       input.addEventListener("keydown", (ev) => {
-        if (ev.key === "Enter") commit();
-        if (ev.key === "Escape") cancel();
+        // preventDefault so Escape doesn't close the whole popup and Enter
+        // doesn't activate a sibling row button.
+        if (ev.key === "Enter") { ev.preventDefault(); commit(); }
+        if (ev.key === "Escape") { ev.preventDefault(); cancel(); }
       });
       input.addEventListener("blur", commit);
     });
