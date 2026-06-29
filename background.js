@@ -219,6 +219,55 @@ async function switchWorkspace(targetId) {
   }
 }
 
+// ---------- Move current tab (spec: Move tab to workspace) ----------
+
+// Resolve the working window's active tab as a saveable { url, pinned }.
+// Throws if it is not http/https — chrome:// pages can't be reopened later.
+async function resolveActiveSaveableTab(winId) {
+  const [tab] = await chrome.tabs.query({ active: true, windowId: winId });
+  if (!tab) throw new Error("No active tab");
+  if (!isTrackableUrl(tab.url)) throw new Error("This page can't be moved");
+  return { tab, saveable: { url: tab.url, pinned: !!tab.pinned } };
+}
+
+// Open a blank tab first if this is the only tab, so the window never empties
+// (invariant 1), then close the moved tab.
+async function closeMovedTab(winId, tabId) {
+  const remaining = await chrome.tabs.query({ windowId: winId });
+  if (remaining.length <= 1) {
+    await chrome.tabs.create({ windowId: winId });
+  }
+  await chrome.tabs.remove(tabId);
+}
+
+async function moveActiveTab(targetId) {
+  const winId = await getCurrentWindowId();
+  if (winId == null) throw new Error("No working window");
+  const state = await getState();
+  if (targetId === state.activeWorkspaceId) {
+    throw new Error("Tab is already in this workspace");
+  }
+  const { tab, saveable } = await resolveActiveSaveableTab(winId);
+  const next = buildMovedState(state, targetId, saveable); // throws if target missing
+  await setState(next);
+  // Closing the tab lets normal live-sync drop it from the source workspace.
+  await closeMovedTab(winId, tab.id);
+}
+
+async function moveActiveTabToNew(name) {
+  const clean = cleanName(name);
+  if (!clean) throw new Error("Name is required");
+  const winId = await getCurrentWindowId();
+  if (winId == null) throw new Error("No working window");
+  const state = await getState();
+  const { tab, saveable } = await resolveActiveSaveableTab(winId);
+  const id = crypto.randomUUID();
+  const next = buildNewWorkspaceState(state, clean, saveable, id);
+  await setState(next);
+  await closeMovedTab(winId, tab.id);
+  return next.workspaces.find((w) => w.id === id);
+}
+
 // ---------- Message router (popup -> background) ----------
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
@@ -247,6 +296,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         case "rename":
           await renameWorkspace(msg.id, msg.name);
           sendResponse({ ok: true });
+          break;
+        case "moveTab":
+          await moveActiveTab(msg.targetId);
+          sendResponse({ ok: true });
+          break;
+        case "moveTabToNew":
+          sendResponse({ ok: true, ws: await moveActiveTabToNew(msg.name) });
           break;
         default:
           sendResponse({ ok: false, error: "unknown message" });
