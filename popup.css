@@ -122,6 +122,11 @@ body {
 .edit:hover { color: var(--accent); background: #23272f; }
 .x:hover { color: var(--danger); background: #2f2326; }
 
+/* Delete confirm: red prompt, the tick reads as the affirmative action. */
+.confirm-text { color: var(--danger); font-weight: 600; }
+.item.confirming .x { color: var(--green); }
+.item.confirming .x:hover { color: var(--green); background: #1f2a23; }
+
 .rename-input {
   flex: 1; min-width: 0;
   background: #18181b; color: var(--fg);

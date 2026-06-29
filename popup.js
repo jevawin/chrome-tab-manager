@@ -55,6 +55,9 @@ const moveNewGo = document.getElementById("moveNewGo");
 
 const NEW_OPTION = "__new__";
 
+// Which workspace row is showing the inline "Delete?" confirm (or null).
+let confirmingId = null;
+
 // Lucide icons (https://lucide.dev, ISC). Inlined as SVG to avoid a build step.
 // stroke="currentColor" so they take the button's text color.
 const ICON_SVG = (paths) =>
@@ -73,8 +76,13 @@ const ICON_TRASH = ICON_SVG(
 ); // trash-2
 
 const ICON_FOLDER = ICON_SVG(
-  '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
+  '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>' +
+    // Solid tab flap (derived from the folder's own geometry) — the "tab"
+    // highlighted. currentColor so it follows the muted/green-on-hover state.
+    '<path fill="currentColor" stroke="none" d="M2 6 V5 A2 2 0 0 1 4 3 H7.93 A2 2 0 0 1 9.6 3.9 L10.41 5.1 A2 2 0 0 0 12.1 6 Z"/>'
 ); // folder — the extension's mark, used as the tab-count glyph
+
+const ICON_CHECK = ICON_SVG('<path d="M20 6 9 17l-5-5"/>'); // check
 
 // Name is mandatory: both create buttons stay disabled until the
 // field holds non-whitespace text.
@@ -138,8 +146,10 @@ async function render() {
   }
 
   for (const ws of workspaces) {
+    const confirming = ws.id === confirmingId;
     const li = document.createElement("li");
-    li.className = "item" + (ws.id === activeWorkspaceId ? " active" : "");
+    li.className =
+      "item" + (ws.id === activeWorkspaceId ? " active" : "") + (confirming ? " confirming" : "");
 
     const dot = document.createElement("span");
     dot.className = "dot";
@@ -162,11 +172,17 @@ async function render() {
 
     const x = document.createElement("button");
     x.className = "x";
-    x.innerHTML = ICON_TRASH; // trash-2
-    x.title = "Delete workspace";
+    x.innerHTML = confirming ? ICON_CHECK : ICON_TRASH; // tick when confirming
+    x.title = confirming ? "Confirm delete" : "Delete workspace";
 
     // Click the row -> switch (swap tabs). Active row does nothing.
+    // While a row is mid-confirm, a row click cancels the confirm instead.
     li.addEventListener("click", async () => {
+      if (confirmingId) {
+        confirmingId = null;
+        render();
+        return;
+      }
       if (ws.id === activeWorkspaceId) return;
       await send({ type: "switch", id: ws.id });
       window.close();
@@ -202,22 +218,34 @@ async function render() {
       input.addEventListener("blur", commit);
     });
 
-    // Delete without triggering the switch.
+    // First trash click arms the confirm; the tick (same button) commits.
     x.addEventListener("click", async (e) => {
       e.stopPropagation();
+      if (!confirming) {
+        confirmingId = ws.id;
+        render();
+        return;
+      }
       await send({ type: "delete", id: ws.id });
+      confirmingId = null;
       render();
     });
 
-    // Group the count and the action icons so they sit together at the right
-    // edge, leaving the workspace name room to breathe.
-    const rowIcons = document.createElement("span");
-    rowIcons.className = "row-icons";
-    rowIcons.append(edit, x);
-
     const right = document.createElement("span");
     right.className = "row-right";
-    right.append(count, rowIcons);
+    if (confirming) {
+      // Confirm state: hide count + edit, show "Delete?" next to the tick.
+      const ask = document.createElement("span");
+      ask.className = "confirm-text";
+      ask.textContent = "Delete?";
+      right.append(ask, x);
+    } else {
+      // Group the count and the action icons together at the right edge.
+      const rowIcons = document.createElement("span");
+      rowIcons.className = "row-icons";
+      rowIcons.append(edit, x);
+      right.append(count, rowIcons);
+    }
 
     li.append(dot, label, right);
     listEl.appendChild(li);
