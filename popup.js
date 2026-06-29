@@ -10,7 +10,27 @@ const saveEl = document.getElementById("save");
 const emptyEl = document.getElementById("empty");
 
 const moveStrip = document.getElementById("moveStrip");
+const moveFav = document.getElementById("moveFav");
+const moveIcon = document.getElementById("moveIcon");
 const moveLabel = document.getElementById("moveLabel");
+
+// Show the tab's favicon when we have one, falling back to the ↪ glyph.
+// A broken favicon URL triggers onerror, which restores the glyph.
+function showMoveIcon(favIconUrl) {
+  if (favIconUrl) {
+    moveFav.src = favIconUrl;
+    moveFav.hidden = false;
+    moveIcon.hidden = true;
+  } else {
+    moveFav.removeAttribute("src");
+    moveFav.hidden = true;
+    moveIcon.hidden = false;
+  }
+}
+moveFav.addEventListener("error", () => {
+  moveFav.hidden = true;
+  moveIcon.hidden = false;
+});
 const movePick = document.getElementById("movePick");
 const moveNew = document.getElementById("moveNew");
 const moveNewName = document.getElementById("moveNewName");
@@ -39,6 +59,7 @@ function renderMoveStrip(workspaces, activeWorkspaceId, activeTab) {
   moveStrip.hidden = false;
 
   if (!activeTab.trackable) {
+    showMoveIcon(null);
     moveLabel.textContent = "Can't move this page";
     moveLabel.title = "";
     moveLabel.classList.add("muted-label");
@@ -49,6 +70,7 @@ function renderMoveStrip(workspaces, activeWorkspaceId, activeTab) {
   }
   moveLabel.classList.remove("muted-label");
   movePick.disabled = false;
+  showMoveIcon(activeTab.favIconUrl);
   moveLabel.textContent = activeTab.title || activeTab.url;
   moveLabel.title = activeTab.url;
 
