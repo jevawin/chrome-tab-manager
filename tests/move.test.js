@@ -5,7 +5,7 @@ globalThis.chrome = {
 
 const { test } = require("node:test");
 const assert = require("node:assert");
-const { buildMovedState, buildNewWorkspaceState } = require("../background.js");
+const { buildMovedState } = require("../background.js");
 
 const tab = { url: "https://example.com/", pinned: false };
 
@@ -28,12 +28,4 @@ test("buildMovedState appends tab to the target workspace", () => {
 test("buildMovedState throws when target is missing", () => {
   const state = { workspaces: [], activeWorkspaceId: null };
   assert.throws(() => buildMovedState(state, "nope", tab), /target not found/);
-});
-
-test("buildNewWorkspaceState appends a new workspace seeded with the tab", () => {
-  const state = { workspaces: [], activeWorkspaceId: null };
-  const next = buildNewWorkspaceState(state, "C", tab, "fixed-id");
-  assert.strictEqual(next.workspaces.length, 1);
-  assert.deepStrictEqual(next.workspaces[0], { id: "fixed-id", name: "C", tabs: [tab] });
-  assert.strictEqual(next.activeWorkspaceId, null);
 });

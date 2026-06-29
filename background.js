@@ -84,11 +84,6 @@ function buildMovedState(state, targetId, tab) {
   };
 }
 
-function buildNewWorkspaceState(state, name, tab, id) {
-  const ws = { id, name, tabs: [tab] };
-  return { ...state, workspaces: [...state.workspaces, ws] };
-}
-
 // ---------- Live tracking (spec 3) ----------
 // On any tab change, snapshot the current window into the active workspace.
 // Muted while swapping, and when no workspace is active (Default state).
@@ -261,6 +256,10 @@ async function moveActiveTab(targetId) {
   await closeMovedTab(winId, tab.id);
 }
 
+// Move the active tab into a brand-new workspace AND follow it there: the new
+// workspace becomes active and the window is left showing just that tab. Unlike
+// a swap, the moved tab is never closed/reopened — it stays open as-is (no flash,
+// keeps its scroll/form state); we only close the other tabs around it.
 async function moveActiveTabToNew(name) {
   const clean = cleanName(name);
   if (!clean) throw new Error("Name is required");
@@ -269,10 +268,36 @@ async function moveActiveTabToNew(name) {
   const state = await getState();
   const { tab, saveable } = await resolveActiveSaveableTab(winId);
   const id = crypto.randomUUID();
-  const next = buildNewWorkspaceState(state, clean, saveable, id);
-  await setState(next);
-  await closeMovedTab(winId, tab.id);
-  return next.workspaces.find((w) => w.id === id);
+
+  // Mute live tracking while we reshape the window (same reason as the swap).
+  await setSwapping(true);
+  try {
+    // Save the workspace we're leaving WITHOUT the moved tab, so it doesn't
+    // keep a copy. Skipped in Default state (no active source — invariant 4).
+    if (state.activeWorkspaceId) {
+      const src = state.workspaces.find((w) => w.id === state.activeWorkspaceId);
+      if (src) {
+        const winTabs = await chrome.tabs.query({ windowId: winId });
+        src.tabs = winTabs
+          .filter((t) => t.id !== tab.id && isTrackableUrl(t.url))
+          .map((t) => ({ url: t.url, pinned: !!t.pinned }));
+      }
+    }
+    // Add the new workspace seeded with the moved tab and make it active.
+    state.workspaces.push({ id, name: clean, tabs: [saveable] });
+    state.activeWorkspaceId = id;
+    await setState(state);
+
+    // Keep the moved tab open; close everything else. The moved tab remains, so
+    // the window never empties (invariant 1).
+    const others = (await chrome.tabs.query({ windowId: winId }))
+      .map((t) => t.id)
+      .filter((tid) => tid !== tab.id);
+    if (others.length) await chrome.tabs.remove(others);
+  } finally {
+    await setSwapping(false);
+  }
+  return state.workspaces.find((w) => w.id === id);
 }
 
 // ---------- Message router (popup -> background) ----------
@@ -323,5 +348,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // Exported for unit tests (Node). Harmless no-op in the service worker.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildMovedState, buildNewWorkspaceState };
+  module.exports = { buildMovedState };
 }

@@ -139,8 +139,10 @@ name field has non-whitespace text; `create`/`createEmpty` reject blank names.
 - `moveTab` `{ targetId }` -> moves the working window's active tab into an
   existing workspace (stash + close the live tab). No swap. Rejects non-http/https
   tabs and the active workspace as target.
-- `moveTabToNew` `{ name }` -> creates a new workspace seeded with the active tab,
-  then stashes it. No swap. Stays in the current workspace.
+- `moveTabToNew` `{ name }` -> creates a new workspace seeded with the active tab
+  and **follows** it there: the new workspace becomes active and the window is
+  left showing just that tab. The moved tab stays open (not closed/reopened); the
+  other tabs close and the source workspace is saved without the moved tab.
 - `delete` `{ id }` -> removes a workspace; clears active if it was active
 - `rename` `{ id, name }` -> renames a workspace (inline pencil-edit in the popup)
 
