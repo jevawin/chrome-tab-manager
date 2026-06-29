@@ -31,6 +31,20 @@ async function getCurrentWindowId() {
   return tab ? tab.windowId : null;
 }
 
+// Read the working window's active tab as a render-only summary for the popup.
+async function readActiveTab() {
+  const winId = await getCurrentWindowId();
+  if (winId == null) return null;
+  const [tab] = await chrome.tabs.query({ active: true, windowId: winId });
+  if (!tab) return null;
+  return {
+    url: tab.url || "",
+    title: tab.title || "",
+    favIconUrl: tab.favIconUrl || "",
+    trackable: isTrackableUrl(tab.url)
+  };
+}
+
 function isTrackableUrl(url) {
   return typeof url === "string" && /^https?:\/\//i.test(url);
 }
@@ -210,9 +224,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     try {
       switch (msg.type) {
-        case "getState":
-          sendResponse(await getState());
+        case "getState": {
+          const state = await getState();
+          const activeTab = await readActiveTab();
+          sendResponse({ ...state, activeTab });
           break;
+        }
         case "create":
           sendResponse({ ok: true, ws: await createWorkspace(msg.name) });
           break;
