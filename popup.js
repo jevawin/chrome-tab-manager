@@ -232,7 +232,9 @@ moveNewName.addEventListener("keydown", (e) => {
 moveNewGo.addEventListener("click", async () => {
   if (moveNewGo.disabled) return;
   await send({ type: "moveTabToNew", name: moveNewName.value.trim() });
-  render();
+  // Move-to-new follows the tab into the new workspace, so close the popup like
+  // a switch does — the window has already changed underneath it.
+  window.close();
 });
 
 saveEl.addEventListener("click", async () => {

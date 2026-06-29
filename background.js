@@ -348,5 +348,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // Exported for unit tests (Node). Harmless no-op in the service worker.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildMovedState };
+  module.exports = { buildMovedState, moveActiveTab, moveActiveTabToNew };
 }

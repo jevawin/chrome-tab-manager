@@ -160,10 +160,14 @@ Manual smoke test for the core guard:
 4. In A, open a new tab. Switch to B, then back to A. The new tab must still be
    in A. If it is, the swap guard works.
 
-Pure state logic has a small Node test (`tests/move.test.js`). Run it with
-`node --test` (auto-discovers test files; `node --test tests/` fails on Node 24).
-Code that touches `chrome.*` APIs is verified by the manual smoke steps above —
-keep pure, testable logic separate from the Chrome calls so it can be unit-tested.
+Node tests (run with `node --test`; `node --test tests/` fails on Node 24):
+- `tests/move.test.js` — pure state helpers.
+- `tests/move-actions.test.js` — the move ACTIONS against an in-memory `chrome`
+  fake (storage + tabs), covering follow-the-tab, source save, and guards.
+
+Keep pure, testable logic separate from the Chrome calls. **After editing
+`background.js` you MUST reload the extension card** at `chrome://extensions`
+(the MV3 service worker caches the old code; reopening the popup is not enough).
 
 ### Visual test harness (popup)
 
