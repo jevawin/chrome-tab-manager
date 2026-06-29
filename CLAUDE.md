@@ -116,12 +116,18 @@ async channel open.
 Workspace names are mandatory. The popup disables both create buttons until the
 name field has non-whitespace text; `create`/`createEmpty` reject blank names.
 
-- `getState` -> returns `{ workspaces, activeWorkspaceId }`
+- `getState` -> returns `{ workspaces, activeWorkspaceId, activeTab }` where
+  `activeTab` is `{ url, title, favIconUrl, trackable } | null` for the move strip.
 - `create` `{ name }` -> "Save current tabs": snapshots current window into a new
   workspace, makes it active. Does not swap.
 - `createEmpty` `{ name }` -> "Start empty": creates an empty workspace, then runs
   the swap into it (closes current tabs, opens one blank tab).
 - `switch` `{ id }` -> runs the swap
+- `moveTab` `{ targetId }` -> moves the working window's active tab into an
+  existing workspace (stash + close the live tab). No swap. Rejects non-http/https
+  tabs and the active workspace as target.
+- `moveTabToNew` `{ name }` -> creates a new workspace seeded with the active tab,
+  then stashes it. No swap. Stays in the current workspace.
 - `delete` `{ id }` -> removes a workspace; clears active if it was active
 - `rename` `{ id, name }` -> renames (no UI yet; handler exists)
 

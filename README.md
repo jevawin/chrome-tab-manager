@@ -20,8 +20,21 @@ in the current window swap out. The active workspace tracks tab changes live.
 - **Click a workspace** — closes the current tabs and opens that workspace's tabs.
 - **Live state** — while you are in a workspace, opening/closing/navigating tabs
   updates that workspace automatically.
+- **Move a tab** — open the popup and use the move strip (shows the active tab
+  with a workspace picker) to send the current tab to another workspace or create
+  a new one. Stashes the tab; stays in your current workspace.
+- **Rename a workspace** — click the pencil icon next to a workspace name in the
+  popup. Type a new name and press Enter (or Escape to cancel).
 
 Names are required — both create buttons stay disabled until you type one.
+
+## Test it manually
+
+Smoke test for the core swap guard:
+1. Open 3 tabs. Click the extension icon, type a name, click "Save current tabs" to save as workspace "A".
+2. Open 2 different tabs. Type another name, click "Save current tabs" to save as workspace "B".
+3. In the popup, click workspace "A". B's tabs should close, A's tabs should open.
+4. In A, open a new tab. Switch to B, then back to A. The new tab must still be in A. If it is, the swap guard works.
 
 ## Known v1 limits
 
