@@ -2,6 +2,11 @@
 
 Context for Claude Code working on this project. Read this first.
 
+**Keep this file current.** When you add a feature, change the architecture, add
+a message type, alter the data model, or add tooling, update the matching section
+here (File map, Data model, Message protocol, Run and test, Invariants) in the
+same change. Stale docs here are worse than none. Prune notes that no longer hold.
+
 ## What this is
 
 A Chrome extension (Manifest V3) that gives Safari-style **workspaces**. Switch a
@@ -39,6 +44,8 @@ Repo: `git@github.com:jevawin/chrome-tab-manager.git`.
 - `popup.html` / `popup.css` / `popup.js` — the dropdown UI. Thin. Sends
   messages to the background and renders state.
 - `README.md` — user-facing load and usage notes.
+- `tests/move.test.js` — Node unit test for the pure state helpers.
+- `test/harness.html` — local visual test harness for the popup (gitignored).
 
 The popup holds no logic beyond rendering and sending messages. All decisions
 live in `background.js`. Keep it that way.
@@ -149,6 +156,23 @@ Pure state logic has a small Node test (`tests/move.test.js`). Run it with
 `node --test` (auto-discovers test files; `node --test tests/` fails on Node 24).
 Code that touches `chrome.*` APIs is verified by the manual smoke steps above —
 keep pure, testable logic separate from the Chrome calls so it can be unit-tested.
+
+### Visual test harness (popup)
+
+The popup can't run in a plain page because `chrome.runtime` doesn't exist.
+`test/harness.html` (gitignored, local-only) stubs `chrome.*` with sample data
+and loads the **real** `popup.html` markup + `popup.js` + `popup.css`. It fetches
+`popup.html` rather than copying it, so it never drifts. Use it to eyeball layout
+and interactions (it already caught a real `[hidden]` CSS bug):
+
+```
+python3 -m http.server 8731     # file:// is blocked; serve over HTTP
+# open http://localhost:8731/test/harness.html
+```
+
+Query params switch state: `?state=untrackable` (chrome:// active tab, strip
+disabled) and `?state=empty` (no workspaces). The harness uses a stubbed
+`chrome`, so real favicon loading and live tab data still need a real Chrome load.
 
 ## Known limitations (v1)
 
