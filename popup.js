@@ -169,7 +169,17 @@ async function render() {
       render();
     });
 
-    li.append(dot, label, count, edit, x);
+    // Group the count and the action icons so they sit together at the right
+    // edge, leaving the workspace name room to breathe.
+    const rowIcons = document.createElement("span");
+    rowIcons.className = "row-icons";
+    rowIcons.append(edit, x);
+
+    const right = document.createElement("span");
+    right.className = "row-right";
+    right.append(count, rowIcons);
+
+    li.append(dot, label, right);
     listEl.appendChild(li);
   }
 }

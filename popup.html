@@ -5,25 +5,8 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <div class="head">Workspaces</div>
-
-    <div id="moveStrip" class="move-strip" hidden>
-      <img id="moveFav" class="move-fav" alt="" hidden />
-      <span id="moveIcon" class="move-icon">&#8618;</span>
-      <span id="moveLabel" class="move-label"></span>
-      <select id="movePick" class="move-pick">
-        <option value="" disabled selected>Move to&hellip;</option>
-      </select>
-      <span id="moveNew" class="move-new" hidden>
-        <input id="moveNewName" type="text" placeholder="New name" maxlength="40" />
-        <button id="moveNewGo" class="primary" disabled>Move</button>
-      </span>
-    </div>
-
-    <ul id="list" class="list"></ul>
-
-    <div class="add">
-      <div class="add-head">Create new workspace</div>
+    <section class="section">
+      <h2 class="section-head">Create new workspace</h2>
       <input id="name" type="text" placeholder="Workspace name" maxlength="40" />
       <div class="add-actions">
         <button id="save" class="primary" disabled title="Save the current tabs as a new workspace">
@@ -33,7 +16,28 @@
           Start empty
         </button>
       </div>
-    </div>
+    </section>
+
+    <section id="moveStrip" class="section move-strip" hidden>
+      <h2 class="section-head">Current tab</h2>
+      <div class="move-row">
+        <img id="moveFav" class="move-fav" alt="" hidden />
+        <span id="moveIcon" class="move-icon">&#8618;</span>
+        <span id="moveLabel" class="move-label"></span>
+        <select id="movePick" class="move-pick">
+          <option value="" disabled selected>Move to&hellip;</option>
+        </select>
+      </div>
+      <span id="moveNew" class="move-new" hidden>
+        <input id="moveNewName" type="text" placeholder="New workspace name" maxlength="40" />
+        <button id="moveNewGo" class="primary" disabled>Move</button>
+      </span>
+    </section>
+
+    <section class="section">
+      <h2 class="section-head">Workspaces</h2>
+      <ul id="list" class="list"></ul>
+    </section>
 
     <script src="popup.js"></script>
   </body>
