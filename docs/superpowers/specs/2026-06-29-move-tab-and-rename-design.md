@@ -83,6 +83,12 @@ user stays in the current workspace.
 - **Zero existing workspaces.** The picker offers only `＋ New workspace…`.
 - **Active tab unresolved.** If no active tab can be read for the working window,
   reject with an error; the popup shows the strip disabled.
+- **Active tab changes between render and move.** The strip shows the active tab
+  at render time, but the move resolves the active tab again in the background at
+  action time. If the user switches tabs in the working window after the popup
+  opens, the move acts on the *current* active tab, which may differ from the
+  label shown. This is intentional — acting on a freshly resolved tab is safer
+  than trusting a stale id — but the moved tab and the shown label can differ.
 
 ---
 
