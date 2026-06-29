@@ -134,6 +134,8 @@ function renderMoveStrip(workspaces, activeWorkspaceId, activeTab) {
 
 async function render() {
   const { workspaces, activeWorkspaceId, activeTab } = await send({ type: "getState" });
+  // Display order is alphabetical (case-insensitive). Doesn't change stored order.
+  workspaces.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   renderMoveStrip(workspaces, activeWorkspaceId, activeTab);
   listEl.innerHTML = "";
 
