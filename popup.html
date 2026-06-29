@@ -7,6 +7,18 @@
   <body>
     <div class="head">Workspaces</div>
 
+    <div id="moveStrip" class="move-strip" hidden>
+      <span class="move-icon">&#8618;</span>
+      <span id="moveLabel" class="move-label"></span>
+      <select id="movePick" class="move-pick">
+        <option value="" disabled selected>Move to&hellip;</option>
+      </select>
+      <span id="moveNew" class="move-new" hidden>
+        <input id="moveNewName" type="text" placeholder="New name" maxlength="40" />
+        <button id="moveNewGo" class="primary" disabled>Move</button>
+      </span>
+    </div>
+
     <ul id="list" class="list"></ul>
 
     <div class="add">

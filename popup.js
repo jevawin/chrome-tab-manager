@@ -9,6 +9,15 @@ const nameEl = document.getElementById("name");
 const saveEl = document.getElementById("save");
 const emptyEl = document.getElementById("empty");
 
+const moveStrip = document.getElementById("moveStrip");
+const moveLabel = document.getElementById("moveLabel");
+const movePick = document.getElementById("movePick");
+const moveNew = document.getElementById("moveNew");
+const moveNewName = document.getElementById("moveNewName");
+const moveNewGo = document.getElementById("moveNewGo");
+
+const NEW_OPTION = "__new__";
+
 // Name is mandatory: both create buttons stay disabled until the
 // field holds non-whitespace text.
 function syncButtons() {
@@ -17,8 +26,44 @@ function syncButtons() {
   emptyEl.disabled = !ok;
 }
 
+function renderMoveStrip(workspaces, activeWorkspaceId, activeTab) {
+  // Reset the inline new-name sub-input each render.
+  moveNew.hidden = true;
+  moveNewName.value = "";
+  moveNewGo.disabled = true;
+
+  if (!activeTab) {
+    moveStrip.hidden = true;
+    return;
+  }
+  moveStrip.hidden = false;
+
+  if (!activeTab.trackable) {
+    moveLabel.textContent = "Can't move this page";
+    moveLabel.classList.add("muted-label");
+    movePick.disabled = true;
+    return;
+  }
+  moveLabel.classList.remove("muted-label");
+  movePick.disabled = false;
+  moveLabel.textContent = activeTab.title || activeTab.url;
+  moveLabel.title = activeTab.url;
+
+  // Rebuild options: placeholder, each non-active workspace, then New.
+  movePick.innerHTML = "";
+  const ph = new Option("Move to…", "", true, true);
+  ph.disabled = true;
+  movePick.add(ph);
+  for (const ws of workspaces) {
+    if (ws.id === activeWorkspaceId) continue;
+    movePick.add(new Option(ws.name, ws.id));
+  }
+  movePick.add(new Option("＋ New workspace…", NEW_OPTION));
+}
+
 async function render() {
-  const { workspaces, activeWorkspaceId } = await send({ type: "getState" });
+  const { workspaces, activeWorkspaceId, activeTab } = await send({ type: "getState" });
+  renderMoveStrip(workspaces, activeWorkspaceId, activeTab);
   listEl.innerHTML = "";
 
   if (!workspaces.length) {
@@ -68,6 +113,34 @@ async function render() {
     listEl.appendChild(li);
   }
 }
+
+movePick.addEventListener("change", async () => {
+  const val = movePick.value;
+  if (!val) return;
+  if (val === NEW_OPTION) {
+    moveNew.hidden = false;
+    moveNewName.focus();
+    movePick.value = ""; // reset so re-selecting New later still fires change
+    return;
+  }
+  await send({ type: "moveTab", targetId: val });
+  render();
+});
+
+moveNewName.addEventListener("input", () => {
+  moveNewGo.disabled = moveNewName.value.trim().length === 0;
+});
+
+moveNewName.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !moveNewGo.disabled) moveNewGo.click();
+  if (e.key === "Escape") { moveNew.hidden = true; moveNewName.value = ""; }
+});
+
+moveNewGo.addEventListener("click", async () => {
+  if (moveNewGo.disabled) return;
+  await send({ type: "moveTabToNew", name: moveNewName.value });
+  render();
+});
 
 saveEl.addEventListener("click", async () => {
   if (saveEl.disabled) return;
