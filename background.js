@@ -54,6 +54,25 @@ async function snapshotInto(wsId, winId) {
   await setState({ workspaces });
 }
 
+// ---------- Pure move helpers (unit-tested in Node) ----------
+// These transform a state object only. They never touch chrome.tabs/storage,
+// so they stay testable without the Chrome runtime. Callers persist the result.
+
+function buildMovedState(state, targetId, tab) {
+  const workspaces = state.workspaces.map((w) =>
+    w.id === targetId ? { ...w, tabs: [...(w.tabs || []), tab] } : w
+  );
+  if (!state.workspaces.some((w) => w.id === targetId)) {
+    throw new Error("target not found");
+  }
+  return { ...state, workspaces };
+}
+
+function buildNewWorkspaceState(state, name, tab, id) {
+  const ws = { id, name, tabs: [tab] };
+  return { ...state, workspaces: [...state.workspaces, ws] };
+}
+
 // ---------- Live tracking (spec 3) ----------
 // On any tab change, snapshot the current window into the active workspace.
 // Muted while swapping, and when no workspace is active (Default state).
@@ -219,3 +238,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   })();
   return true; // keep the channel open for the async work
 });
+
+// Exported for unit tests (Node). Harmless no-op in the service worker.
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { buildMovedState, buildNewWorkspaceState };
+}
