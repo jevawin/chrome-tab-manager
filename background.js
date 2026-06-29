@@ -237,7 +237,14 @@ async function closeMovedTab(winId, tabId) {
   if (remaining.length <= 1) {
     await chrome.tabs.create({ windowId: winId });
   }
-  await chrome.tabs.remove(tabId);
+  // Idempotent: the tab may already be gone (e.g. the user closed it between
+  // saving state and this call). The end state — tab closed — is what we want,
+  // so a "No tab with id" rejection is not an error.
+  try {
+    await chrome.tabs.remove(tabId);
+  } catch (e) {
+    if (!/No tab with id/i.test(String(e))) throw e;
+  }
 }
 
 async function moveActiveTab(targetId) {
