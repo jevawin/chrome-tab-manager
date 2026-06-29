@@ -140,6 +140,21 @@ function cleanName(name) {
   return n.length ? n : null;
 }
 
+// Cap on stored icon path markup — guards storage against absurd payloads.
+const MAX_ICON_PATHS = 4096;
+
+// Validate/normalize an icon picked in the popup before it is stored.
+// Returns a clean { name, paths } or null (null => the record gets no icon and
+// renders the default sentinel). Kept pure so it is unit-testable without Chrome.
+function normalizeIcon(icon) {
+  if (!icon || typeof icon !== "object") return null;
+  const { name, paths } = icon;
+  if (typeof name !== "string" || typeof paths !== "string") return null;
+  if (!name.trim() || !paths.trim()) return null;
+  if (paths.length > MAX_ICON_PATHS) return null;
+  return { name, paths };
+}
+
 // "Save current tabs": adopt the current window as a new workspace.
 // Does NOT swap — the open tabs stay, now tracked under the new name.
 async function createWorkspace(name) {
@@ -373,5 +388,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // Exported for unit tests (Node). Harmless no-op in the service worker.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildMovedState, moveActiveTab, moveActiveTabToNew };
+  module.exports = { buildMovedState, moveActiveTab, moveActiveTabToNew, normalizeIcon };
 }
