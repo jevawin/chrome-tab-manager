@@ -56,7 +56,12 @@ function makeChrome({ local = {}, tabs = [] }) {
       },
       remove: (ids) => {
         const arr = Array.isArray(ids) ? ids : [ids];
+        const closedActive = tabStore.some((t) => arr.includes(t.id) && t.active);
         tabStore = tabStore.filter((t) => !arr.includes(t.id));
+        // Mimic Chrome: if the active tab was closed, activate a neighbour.
+        if (closedActive && tabStore.length && !tabStore.some((t) => t.active)) {
+          tabStore[tabStore.length - 1].active = true;
+        }
         return Promise.resolve();
       },
       onCreated: noopListener, onRemoved: noopListener, onMoved: noopListener, onUpdated: noopListener,
@@ -117,7 +122,7 @@ test("moveActiveTabToNew in Default state (no active source) still creates and f
   assert.deepStrictEqual(fake._peek.tabs().map((t) => t.id), [2], "others closed, moved tab stays");
 });
 
-test("moveActiveTab (existing) stashes into target and stays put", async () => {
+test("moveActiveTab (existing) follows into the target: target active, source loses the tab, window shows the target's tabs", async () => {
   const fake = makeChrome({
     local: {
       workspaces: [{ id: "src", name: "Src", tabs: [] }, { id: "dst", name: "Dst", tabs: [{ url: "https://x.com/", pinned: false }] }],
@@ -130,14 +135,27 @@ test("moveActiveTab (existing) stashes into target and stays put", async () => {
   await moveActiveTab("dst");
 
   const local = fake._peek.local();
-  assert.strictEqual(local.activeWorkspaceId, "src", "move-to-existing stays put");
+  assert.strictEqual(local.activeWorkspaceId, "dst", "followed: target is active");
+
   const dst = local.workspaces.find((w) => w.id === "dst");
   assert.deepStrictEqual(
     dst.tabs,
     [{ url: "https://x.com/", pinned: false }, { url: "https://b.com/", pinned: false }],
-    "moved tab appended to target"
+    "moved tab appended to the target's saved tabs"
   );
-  assert.deepStrictEqual(fake._peek.tabs().map((t) => t.id), [1, 3], "moved tab closed from the window");
+
+  const src = local.workspaces.find((w) => w.id === "src");
+  assert.deepStrictEqual(
+    src.tabs,
+    [{ url: "https://a.com/", pinned: false }, { url: "https://c.com/", pinned: false }],
+    "source saved WITHOUT the moved tab"
+  );
+
+  assert.deepStrictEqual(
+    fake._peek.tabs().map((t) => t.url),
+    ["https://x.com/", "https://b.com/"],
+    "window now shows the target workspace's tabs (the moved tab reopened among them)"
+  );
 });
 
 test("moveActiveTab rejects a non-http(s) active tab", async () => {

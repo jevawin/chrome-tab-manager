@@ -2,6 +2,27 @@
 // Background service worker (MV3).
 // Owns all state, live tab tracking, and the swap.
 
+// ---------- Dev-only logging ----------
+// Active only when loaded unpacked: the Web Store injects `update_url` into the
+// manifest, unpacked installs have none. So logs stay in the code permanently
+// and are silent in production. The try/catch also no-ops under Node (tests),
+// where chrome.runtime isn't present.
+const SPACES_DEBUG = (() => {
+  try {
+    return !("update_url" in chrome.runtime.getManifest());
+  } catch (_) {
+    return false;
+  }
+})();
+function dlog(...args) {
+  if (SPACES_DEBUG) console.log("[SPACES]", ...args);
+}
+function derror(...args) {
+  if (SPACES_DEBUG) console.error("[SPACES]", ...args);
+}
+
+dlog("service worker loaded");
+
 // ---------- State helpers ----------
 // Persistent data lives in chrome.storage.local.
 // The transient "swapping" guard lives in chrome.storage.session
@@ -250,10 +271,12 @@ async function moveActiveTab(targetId) {
     throw new Error("Tab is already in this workspace");
   }
   const { tab, saveable } = await resolveActiveSaveableTab(winId);
-  const next = buildMovedState(state, targetId, saveable); // throws if target missing
-  await setState(next);
-  // Closing the tab lets normal live-sync drop it from the source workspace.
+  // Add the tab to the target's saved set...
+  await setState(buildMovedState(state, targetId, saveable)); // throws if target missing
+  // ...drop the live tab so the swap's source-save doesn't keep a copy...
   await closeMovedTab(winId, tab.id);
+  // ...then follow it: switch into the target (opens its tabs, incl. the moved one).
+  await switchWorkspace(targetId);
 }
 
 // Move the active tab into a brand-new workspace AND follow it there: the new
@@ -304,6 +327,7 @@ async function moveActiveTabToNew(name) {
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   (async () => {
     try {
+      dlog("message:", msg && msg.type, msg);
       switch (msg.type) {
         case "getState": {
           const state = await getState();
@@ -340,6 +364,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           sendResponse({ ok: false, error: "unknown message" });
       }
     } catch (e) {
+      derror("handler failed:", msg && msg.type, e);
       sendResponse({ ok: false, error: String(e) });
     }
   })();

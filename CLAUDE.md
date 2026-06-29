@@ -137,8 +137,9 @@ name field has non-whitespace text; `create`/`createEmpty` reject blank names.
   the swap into it (closes current tabs, opens one blank tab).
 - `switch` `{ id }` -> runs the swap
 - `moveTab` `{ targetId }` -> moves the working window's active tab into an
-  existing workspace (stash + close the live tab). No swap. Rejects non-http/https
-  tabs and the active workspace as target.
+  existing workspace and **follows** it there: adds the tab to the target, then
+  switches into it (a normal swap, so the target's tabs open around the moved
+  one). Rejects non-http/https tabs and the active workspace as target.
 - `moveTabToNew` `{ name }` -> creates a new workspace seeded with the active tab
   and **follows** it there: the new workspace becomes active and the window is
   left showing just that tab. The moved tab stays open (not closed/reopened); the
@@ -215,6 +216,10 @@ disabled) and `?state=empty` (no workspaces). The harness uses a stubbed
 - Plain functions, async/await, early returns.
 - Comments explain *why*, not *what*, especially around the swap and the guard.
 - Keep the popup dumb. New behaviour belongs in `background.js`.
+- Dev-only logging: `dlog()` / `derror()` (defined inline in `background.js` and
+  `popup.js`) print only when loaded unpacked — they key off the absence of
+  `update_url` in the manifest, which the Web Store injects. So logging can stay
+  in permanently and is silent in production. Prefer them over raw `console.log`.
 - Icons are inlined [Lucide](https://lucide.dev) SVGs (ISC), `stroke="currentColor"`
   so they inherit text color. No icon dependency, no build step. In `popup.js`
   they are SVG strings (`ICON_EDIT`/`ICON_TRASH`); in `popup.html` they are inline

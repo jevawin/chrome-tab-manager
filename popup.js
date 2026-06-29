@@ -1,7 +1,24 @@
 // Spaces — Workspace Swap (popup)
 
+// Dev-only logging: active when loaded unpacked, silent in Web Store builds.
+// (Mirrors the helper in background.js; kept inline so there's no shared module
+// to load and no build step.)
+const SPACES_DEBUG = (() => {
+  try {
+    return !("update_url" in chrome.runtime.getManifest());
+  } catch (_) {
+    return false;
+  }
+})();
+function dlog(...args) {
+  if (SPACES_DEBUG) console.log("[SPACES]", ...args);
+}
+
 function send(msg) {
-  return chrome.runtime.sendMessage(msg);
+  return chrome.runtime.sendMessage(msg).then((res) => {
+    dlog("sent", msg.type, "->", res);
+    return res;
+  });
 }
 
 const listEl = document.getElementById("list");
@@ -217,7 +234,8 @@ movePick.addEventListener("change", async () => {
     return;
   }
   await send({ type: "moveTab", targetId: val });
-  render();
+  // Move-to-existing now follows the tab into the target, so close like a switch.
+  window.close();
 });
 
 moveNewName.addEventListener("input", () => {
