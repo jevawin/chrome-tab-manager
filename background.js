@@ -140,9 +140,27 @@ function cleanName(name) {
   return n.length ? n : null;
 }
 
+// Cap on stored icon path markup — guards storage against absurd payloads.
+const MAX_ICON_PATHS = 4096;
+
+// TRUST BOUNDARY: `paths` is injected via innerHTML (ICON_SVG in popup.js) and is
+// trusted ONLY because it originates from the extension's own committed icon dataset,
+// never from web content. Do not wire an untrusted source into setIcon or create.
+// Validate/normalize an icon picked in the popup before it is stored.
+// Returns a clean { name, paths } or null (null => the record gets no icon and
+// renders the default sentinel). Kept pure so it is unit-testable without Chrome.
+function normalizeIcon(icon) {
+  if (!icon || typeof icon !== "object") return null;
+  const { name, paths } = icon;
+  if (typeof name !== "string" || typeof paths !== "string") return null;
+  if (!name.trim() || !paths.trim()) return null;
+  if (paths.length > MAX_ICON_PATHS) return null;
+  return { name, paths };
+}
+
 // "Save current tabs": adopt the current window as a new workspace.
 // Does NOT swap — the open tabs stay, now tracked under the new name.
-async function createWorkspace(name) {
+async function createWorkspace(name, icon) {
   const clean = cleanName(name);
   if (!clean) throw new Error("Name is required");
   const winId = await getCurrentWindowId();
@@ -152,6 +170,8 @@ async function createWorkspace(name) {
     name: clean,
     tabs
   };
+  const ic = normalizeIcon(icon);
+  if (ic) ws.icon = ic;
   const state = await getState();
   state.workspaces.push(ws);
   state.activeWorkspaceId = ws.id; // creating one drops you into it
@@ -163,7 +183,7 @@ async function createWorkspace(name) {
 // The swap closes the current tabs and opens one blank tab, so the
 // user lands in a fresh, tracked space. All swap invariants are
 // inherited from switchWorkspace (save outgoing, guard, open-before-close).
-async function createEmptyWorkspace(name) {
+async function createEmptyWorkspace(name, icon) {
   const clean = cleanName(name);
   if (!clean) throw new Error("Name is required");
   const ws = {
@@ -171,6 +191,8 @@ async function createEmptyWorkspace(name) {
     name: clean,
     tabs: []
   };
+  const ic = normalizeIcon(icon);
+  if (ic) ws.icon = ic;
   const state = await getState();
   state.workspaces.push(ws);
   await setState(state);
@@ -189,6 +211,18 @@ async function renameWorkspace(id, name) {
   const state = await getState();
   const ws = state.workspaces.find((w) => w.id === id);
   if (ws) ws.name = (name && name.trim()) || ws.name;
+  await setState(state);
+}
+
+// Set or clear a single workspace's icon. Invalid/absent icon clears it (the
+// record then renders the default sentinel). No-op for an unknown id.
+async function setWorkspaceIcon(id, icon) {
+  const state = await getState();
+  const ws = state.workspaces.find((w) => w.id === id);
+  if (!ws) return;
+  const ic = normalizeIcon(icon);
+  if (ic) ws.icon = ic;
+  else delete ws.icon;
   await setState(state);
 }
 
@@ -283,7 +317,7 @@ async function moveActiveTab(targetId) {
 // workspace becomes active and the window is left showing just that tab. Unlike
 // a swap, the moved tab is never closed/reopened — it stays open as-is (no flash,
 // keeps its scroll/form state); we only close the other tabs around it.
-async function moveActiveTabToNew(name) {
+async function moveActiveTabToNew(name, icon) {
   const clean = cleanName(name);
   if (!clean) throw new Error("Name is required");
   const winId = await getCurrentWindowId();
@@ -307,7 +341,10 @@ async function moveActiveTabToNew(name) {
       }
     }
     // Add the new workspace seeded with the moved tab and make it active.
-    state.workspaces.push({ id, name: clean, tabs: [saveable] });
+    const seeded = { id, name: clean, tabs: [saveable] };
+    const ic = normalizeIcon(icon);
+    if (ic) seeded.icon = ic;
+    state.workspaces.push(seeded);
     state.activeWorkspaceId = id;
     await setState(state);
 
@@ -336,10 +373,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           break;
         }
         case "create":
-          sendResponse({ ok: true, ws: await createWorkspace(msg.name) });
+          sendResponse({ ok: true, ws: await createWorkspace(msg.name, msg.icon) });
           break;
         case "createEmpty":
-          sendResponse({ ok: true, ws: await createEmptyWorkspace(msg.name) });
+          sendResponse({ ok: true, ws: await createEmptyWorkspace(msg.name, msg.icon) });
           break;
         case "switch":
           await switchWorkspace(msg.id);
@@ -353,12 +390,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           await renameWorkspace(msg.id, msg.name);
           sendResponse({ ok: true });
           break;
+        case "setIcon":
+          await setWorkspaceIcon(msg.id, msg.icon);
+          sendResponse({ ok: true });
+          break;
         case "moveTab":
           await moveActiveTab(msg.targetId);
           sendResponse({ ok: true });
           break;
         case "moveTabToNew":
-          sendResponse({ ok: true, ws: await moveActiveTabToNew(msg.name) });
+          sendResponse({ ok: true, ws: await moveActiveTabToNew(msg.name, msg.icon) });
           break;
         default:
           sendResponse({ ok: false, error: "unknown message" });
@@ -373,5 +414,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // Exported for unit tests (Node). Harmless no-op in the service worker.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildMovedState, moveActiveTab, moveActiveTabToNew };
+  module.exports = { buildMovedState, moveActiveTab, moveActiveTabToNew, normalizeIcon, createWorkspace, createEmptyWorkspace, setWorkspaceIcon };
 }

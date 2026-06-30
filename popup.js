@@ -84,6 +84,34 @@ const ICON_FOLDER = ICON_SVG(
 
 const ICON_CHECK = ICON_SVG('<path d="M20 6 9 17l-5-5"/>'); // check
 
+// Default leading glyph for a workspace with no chosen icon. Hardcoded (not from
+// icon-data.json) so a row renders without loading the dataset. Lucide
+// "ellipsis" — a quiet placeholder that reads as "no icon set yet".
+const ICON_ELLIPSIS = ICON_SVG(
+  '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'
+); // ellipsis (verify against lucide.dev/icons/ellipsis at the pinned version)
+
+// Active-row count glyph: the whole folder filled solid (vs ICON_FOLDER's
+// flap-only fill). Mimics Chrome's active-tab look; this is a fill change, not a
+// colour tint, so it stays neutral/green like the inactive glyph.
+const ICON_FOLDER_SOLID = ICON_SVG(
+  '<path fill="currentColor" stroke="none" d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
+); // folder, fully solid
+
+const ICON_LOADER = ICON_SVG('<path d="M21 12a9 9 0 1 1-6.219-8.56"/>'); // loader-circle
+
+// Lazily fetch the committed icon dataset, once, on first picker open. The
+// workspace list never loads it (rows render from stored paths / the sentinel).
+let _iconData = null;
+function loadIconData() {
+  if (_iconData) return _iconData;
+  _iconData = fetch("icon-data.json").then((r) => {
+    if (!r.ok) throw new Error("icon-data fetch failed: " + r.status);
+    return r.json();
+  });
+  return _iconData;
+}
+
 // Name is mandatory: both create buttons stay disabled until the
 // field holds non-whitespace text.
 function syncButtons() {
@@ -97,6 +125,7 @@ function renderMoveStrip(workspaces, activeWorkspaceId, activeTab) {
   moveNew.hidden = true;
   moveNewName.value = "";
   moveNewGo.disabled = true;
+  if (typeof moveNewIconBox !== "undefined") moveNewIconBox.set(null);
 
   if (!activeTab) {
     moveStrip.hidden = true;
@@ -153,8 +182,10 @@ async function render() {
     li.className =
       "item" + (ws.id === activeWorkspaceId ? " active" : "") + (confirming ? " confirming" : "");
 
-    const dot = document.createElement("span");
-    dot.className = "dot";
+    // Leading slot: the workspace's chosen icon, or the default sentinel.
+    const wsIcon = document.createElement("span");
+    wsIcon.className = "ws-icon";
+    wsIcon.innerHTML = ws.icon && ws.icon.paths ? ICON_SVG(ws.icon.paths) : ICON_ELLIPSIS;
 
     const label = document.createElement("span");
     label.className = "label";
@@ -164,7 +195,7 @@ async function render() {
     const count = document.createElement("span");
     count.className = "count";
     const n = ws.tabs ? ws.tabs.length : 0;
-    count.innerHTML = ICON_FOLDER + `<span class="count-n">${n}</span>`;
+    count.innerHTML = (ws.id === activeWorkspaceId ? ICON_FOLDER_SOLID : ICON_FOLDER) + `<span class="count-n">${n}</span>`;
     count.title = n === 1 ? "1 tab" : n + " tabs";
 
     const edit = document.createElement("button");
@@ -190,7 +221,9 @@ async function render() {
       window.close();
     });
 
-    // Inline rename: swap the label for an input in place.
+    // Inline rename: swap the label for an input, and turn the row's leading
+    // icon into an editable icon-box in its place (the static icon is hidden,
+    // not duplicated).
     edit.addEventListener("click", (e) => {
       e.stopPropagation();
       const input = document.createElement("input");
@@ -198,6 +231,17 @@ async function render() {
       input.value = ws.name;
       input.maxLength = 40;
       label.replaceWith(input);
+
+      // Leading slot becomes editable: hide the static icon, drop the icon-box
+      // into its place. Picking applies immediately via setIcon, so it persists
+      // even if the name edit is cancelled.
+      const rowIconBox = makeIconBox(ws.icon || null);
+      wsIcon.hidden = true;
+      wsIcon.parentNode.insertBefore(rowIconBox.el, wsIcon);
+      rowIconBox.el.addEventListener("iconpick", async (ev) => {
+        await send({ type: "setIcon", id: ws.id, icon: ev.detail });
+        input.focus(); // return to name editing after the picker closes
+      });
       input.focus();
       input.select();
 
@@ -217,7 +261,9 @@ async function render() {
         if (ev.key === "Enter") { ev.preventDefault(); commit(); }
         if (ev.key === "Escape") { ev.preventDefault(); cancel(); }
       });
-      input.addEventListener("blur", commit);
+      // Don't commit when focus leaves because the icon picker opened — that's
+      // still part of editing this row. Commit only on a real blur.
+      input.addEventListener("blur", () => { if (pickerEl.hidden) commit(); });
     });
 
     // First trash click arms the confirm; the tick (same button) commits.
@@ -249,7 +295,7 @@ async function render() {
       right.append(count, rowIcons);
     }
 
-    li.append(dot, label, right);
+    li.append(wsIcon, label, right);
     listEl.appendChild(li);
   }
 }
@@ -279,7 +325,7 @@ moveNewName.addEventListener("keydown", (e) => {
 
 moveNewGo.addEventListener("click", async () => {
   if (moveNewGo.disabled) return;
-  await send({ type: "moveTabToNew", name: moveNewName.value.trim() });
+  await send({ type: "moveTabToNew", name: moveNewName.value.trim(), icon: moveNewIconBox.get() || undefined });
   // Move-to-new follows the tab into the new workspace, so close the popup like
   // a switch does — the window has already changed underneath it.
   window.close();
@@ -287,15 +333,16 @@ moveNewGo.addEventListener("click", async () => {
 
 saveEl.addEventListener("click", async () => {
   if (saveEl.disabled) return;
-  await send({ type: "create", name: nameEl.value });
+  await send({ type: "create", name: nameEl.value, icon: nameIconBox.get() || undefined });
   nameEl.value = "";
+  nameIconBox.set(null);
   syncButtons();
   render();
 });
 
 emptyEl.addEventListener("click", async () => {
   if (emptyEl.disabled) return;
-  await send({ type: "createEmpty", name: nameEl.value });
+  await send({ type: "createEmpty", name: nameEl.value, icon: nameIconBox.get() || undefined });
   window.close(); // Start empty swaps the window; close the popup like a switch.
 });
 
@@ -304,6 +351,134 @@ nameEl.addEventListener("input", syncButtons);
 nameEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") saveEl.click();
 });
+
+// ---------- Icon picker (pure presentation) ----------
+const pickerEl = document.getElementById("iconPicker");
+const pickerSearch = document.getElementById("iconSearch");
+const pickerBody = document.getElementById("iconPickerBody");
+const pickerClose = document.getElementById("iconPickerClose");
+const pickerScrim = pickerEl.querySelector(".icon-picker-scrim");
+
+let pickerResolve = null; // resolver for the in-flight openIconPicker() promise
+
+function closePicker(result) {
+  pickerEl.hidden = true;
+  pickerBody.innerHTML = "";
+  pickerSearch.value = "";
+  const r = pickerResolve;
+  pickerResolve = null;
+  if (r) r(result);
+}
+
+// Render the grid from a dataset, grouped by category when no query, flat when
+// searching (search matches name + tags; synonyms surface via Lucide tags).
+// `current` (the box's existing selection) gets marked + scrolled into view.
+function renderPickerGrid(data, query, current) {
+  const q = query.trim().toLowerCase();
+  pickerBody.innerHTML = "";
+
+  let selectedCell = null; // the one cell matching `current`, scrolled to after.
+  const cell = (icon) => {
+    const b = document.createElement("button");
+    b.className = "icon-cell";
+    b.title = icon.name;
+    b.innerHTML = ICON_SVG(icon.paths);
+    if (current && icon.name === current.name) {
+      b.classList.add("selected");
+      selectedCell = b;
+    }
+    b.addEventListener("click", () => closePicker({ name: icon.name, paths: icon.paths }));
+    return b;
+  };
+
+  if (q) {
+    const hits = data.filter(
+      (i) => i.name.toLowerCase().includes(q) || i.tags.some((t) => t.toLowerCase().includes(q))
+    );
+    const grid = document.createElement("div");
+    grid.className = "icon-grid";
+    for (const i of hits) grid.appendChild(cell(i));
+    pickerBody.appendChild(grid);
+    if (selectedCell) selectedCell.scrollIntoView({ block: "center" });
+    return;
+  }
+
+  // Grouped: category header + grid, in dataset order (already sorted by category).
+  let currentCat = null, grid = null;
+  for (const i of data) {
+    if (i.category !== currentCat) {
+      currentCat = i.category;
+      const h = document.createElement("div");
+      h.className = "icon-picker-cat";
+      h.textContent = currentCat;
+      pickerBody.appendChild(h);
+      grid = document.createElement("div");
+      grid.className = "icon-grid";
+      pickerBody.appendChild(grid);
+    }
+    grid.appendChild(cell(i));
+  }
+  if (selectedCell) selectedCell.scrollIntoView({ block: "center" });
+}
+
+// Open the picker; resolves with the chosen { name, paths } or null on dismiss.
+// `current` (the caller's existing selection) is highlighted + scrolled to.
+function openIconPicker(current) {
+  return new Promise((resolve) => {
+    pickerResolve = resolve;
+    pickerEl.hidden = false;
+    pickerSearch.value = "";
+    pickerBody.innerHTML = '<div class="icon-picker-status"><span class="icon-spin">' + ICON_LOADER + "</span> Loading icons…</div>";
+    pickerSearch.focus();
+
+    loadIconData().then(
+      (data) => {
+        if (pickerResolve !== resolve) return; // dismissed before load finished
+        renderPickerGrid(data, "", current);
+        // Search clears the highlight (the current icon may not be in the hits).
+        pickerSearch.oninput = () => renderPickerGrid(data, pickerSearch.value, current);
+      },
+      () => {
+        if (pickerResolve !== resolve) return;
+        _iconData = null; // drop the cached rejection so the next open retries.
+        pickerBody.innerHTML = '<div class="icon-picker-status">Couldn\'t load icons.</div>';
+      }
+    );
+  });
+}
+
+pickerClose.addEventListener("click", () => closePicker(null));
+pickerScrim.addEventListener("click", () => closePicker(null));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !pickerEl.hidden) { e.preventDefault(); closePicker(null); }
+});
+
+// A reusable icon-box: square button showing an icon; click opens the picker.
+// get()/set() expose the current { name, paths } | null selection.
+function makeIconBox(initial) {
+  let icon = initial || null;
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = "icon-box";
+  const paint = () => { el.innerHTML = icon && icon.paths ? ICON_SVG(icon.paths) : ICON_ELLIPSIS; };
+  paint();
+  // Don't steal focus on press: in an inline rename the box sits next to the
+  // name input, and a focus shift would blur-commit the name mid-edit before
+  // the click can open the picker.
+  el.addEventListener("mousedown", (e) => e.preventDefault());
+  el.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const picked = await openIconPicker(icon);
+    if (picked) { icon = picked; paint(); el.dispatchEvent(new CustomEvent("iconpick", { detail: picked })); }
+  });
+  return { el, get: () => icon, set: (next) => { icon = next || null; paint(); } };
+}
+
+// Mount the two "new workspace" icon-boxes (selection held until submit).
+const nameIconBox = makeIconBox(null);
+document.getElementById("nameIconSlot").appendChild(nameIconBox.el);
+const moveNewIconBox = makeIconBox(null);
+document.getElementById("moveNewIconSlot").appendChild(moveNewIconBox.el);
 
 syncButtons();
 render();

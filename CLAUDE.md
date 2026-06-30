@@ -42,9 +42,22 @@ Repo: `git@github.com:jevawin/chrome-tab-manager.git`.
 - `manifest.json` — MV3 manifest. Popup + service worker.
 - `background.js` — all state, live tracking, the swap. The brain.
 - `popup.html` / `popup.css` / `popup.js` — the dropdown UI. Thin. Sends
-  messages to the background and renders state.
+  messages to the background and renders state. `popup.js` also holds the icon
+  picker overlay (pure presentation) and the icon-box used in the create /
+  move-new / rename flows.
 - `README.md` — user-facing load and usage notes.
+- `icon-data.json` — generated, committed Lucide dataset: array of
+  `{ name, category, tags, paths }` (1628 icons, 41 categories). Lazy-fetched by
+  the popup only when the icon picker opens.
+- `tools/gen-icon-data.mjs` — dev-only generator for `icon-data.json` from a
+  pinned Lucide release. Not shipped, not a runtime dependency.
 - `tests/move.test.js` — Node unit test for the pure state helpers.
+- `tests/move-actions.test.js` — move actions against the in-memory `chrome`
+  fake (storage + tabs), covering follow-the-tab, source save, and guards.
+- `tests/icon.test.js` — the `normalizeIcon` validator.
+- `tests/icon-actions.test.js` — icon persistence actions against the chrome fake.
+- `tests/icon-data.test.js` — generated dataset sanity (shape + exclusions).
+- `tests/fake-chrome.js` — shared in-memory chrome fake (not a test).
 - `test/harness.html` — local visual test harness for the popup (gitignored).
 - `icons/` — toolbar/extension icon. `folder.svg` is the Lucide source (white,
   viewBox tightened to fill the 16px canvas; reads on dark toolbars, not light —
@@ -63,11 +76,17 @@ Persistent state in `chrome.storage.local`:
 ```
 {
   workspaces: [
-    { id: string (uuid), name: string, tabs: [{ url: string, pinned: boolean }] }
+    { id: string (uuid), name: string,
+      tabs: [{ url: string, pinned: boolean }],
+      icon?: { name: string, paths: string } }
   ],
   activeWorkspaceId: string | null
 }
 ```
+
+`icon` is optional. `icon.paths` (the Lucide inner SVG markup) is stored so a row
+renders without loading `icon-data.json`. Absent `icon` renders the `ellipsis`
+default sentinel. Backward compatible: existing workspaces have no `icon` field.
 
 Transient guard in `chrome.storage.session`:
 
@@ -131,19 +150,22 @@ name field has non-whitespace text; `create`/`createEmpty` reject blank names.
 
 - `getState` -> returns `{ workspaces, activeWorkspaceId, activeTab }` where
   `activeTab` is `{ url, title, favIconUrl, trackable } | null` for the move strip.
-- `create` `{ name }` -> "Save current tabs": snapshots current window into a new
-  workspace, makes it active. Does not swap.
-- `createEmpty` `{ name }` -> "Start empty": creates an empty workspace, then runs
-  the swap into it (closes current tabs, opens one blank tab).
+- `create` `{ name, icon? }` -> "Save current tabs": snapshots current window into a new
+  workspace, makes it active. Stores `icon` ({ name, paths }) when valid. Does not swap.
+- `createEmpty` `{ name, icon? }` -> "Start empty": creates an empty workspace, then runs
+  the swap into it (closes current tabs, opens one blank tab). Stores `icon` when valid.
 - `switch` `{ id }` -> runs the swap
 - `moveTab` `{ targetId }` -> moves the working window's active tab into an
   existing workspace and **follows** it there: adds the tab to the target, then
   switches into it (a normal swap, so the target's tabs open around the moved
   one). Rejects non-http/https tabs and the active workspace as target.
-- `moveTabToNew` `{ name }` -> creates a new workspace seeded with the active tab
+- `moveTabToNew` `{ name, icon? }` -> creates a new workspace seeded with the active tab
   and **follows** it there: the new workspace becomes active and the window is
-  left showing just that tab. The moved tab stays open (not closed/reopened); the
-  other tabs close and the source workspace is saved without the moved tab.
+  left showing just that tab. Seeds the new workspace's `icon` when valid. The moved tab
+  stays open (not closed/reopened); the other tabs close and the source workspace is saved
+  without the moved tab.
+- `setIcon` `{ id, icon }` -> sets/clears one workspace's icon. Invalid or absent `icon`
+  clears it.
 - `delete` `{ id }` -> removes a workspace; clears active if it was active
 - `rename` `{ id, name }` -> renames a workspace (inline pencil-edit in the popup)
 
@@ -161,10 +183,17 @@ Manual smoke test for the core guard:
 4. In A, open a new tab. Switch to B, then back to A. The new tab must still be
    in A. If it is, the swap guard works.
 
+Icon picker dataset regen (after a Lucide bump — edit `LUCIDE_VERSION` in
+the script): `node tools/gen-icon-data.mjs`. Commit the updated `icon-data.json`.
+
 Node tests (run with `node --test`; `node --test tests/` fails on Node 24):
 - `tests/move.test.js` — pure state helpers.
-- `tests/move-actions.test.js` — the move ACTIONS against an in-memory `chrome`
+- `tests/move-actions.test.js` — move actions against the in-memory `chrome`
   fake (storage + tabs), covering follow-the-tab, source save, and guards.
+- `tests/icon.test.js` — the `normalizeIcon` validator.
+- `tests/icon-actions.test.js` — icon persistence actions against the chrome fake.
+- `tests/icon-data.test.js` — generated dataset sanity (shape + exclusions).
+- `tests/fake-chrome.js` — shared in-memory chrome fake (not a test).
 
 Keep pure, testable logic separate from the Chrome calls. **After editing
 `background.js` you MUST reload the extension card** at `chrome://extensions`
@@ -193,7 +222,7 @@ disabled) and `?state=empty` (no workspaces). The harness uses a stubbed
   handled.
 - The MV3 service worker can unload mid-debounce, dropping a pending auto-save.
   It recovers on the next tab event.
-- No reorder, no rename UI, no icons, no sync across machines.
+- No reorder, no sync across machines. (Rename and per-workspace icons exist.)
 - Pinned state is saved per tab but pinned tabs are not shared across workspaces.
 
 ## Open decisions (ask the user before assuming)

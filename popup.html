@@ -7,7 +7,10 @@
   <body>
     <section class="section">
       <h2 class="section-head">Create new workspace</h2>
-      <input id="name" type="text" placeholder="Workspace name" maxlength="40" />
+      <div class="name-row">
+        <span id="nameIconSlot"></span>
+        <input id="name" type="text" placeholder="Workspace name" maxlength="40" />
+      </div>
       <div class="add-actions">
         <button id="save" class="primary" disabled title="Save the current tabs as a new workspace">
           <svg class="btn-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -38,6 +41,7 @@
         </select>
       </div>
       <span id="moveNew" class="move-new" hidden>
+        <span id="moveNewIconSlot"></span>
         <input id="moveNewName" type="text" placeholder="New workspace name" maxlength="40" />
         <button id="moveNewGo" class="primary" disabled>Move</button>
       </span>
@@ -47,6 +51,17 @@
       <h2 class="section-head">Workspaces</h2>
       <ul id="list" class="list"></ul>
     </section>
+
+    <div id="iconPicker" class="icon-picker" hidden>
+      <div class="icon-picker-scrim"></div>
+      <div class="icon-picker-panel" role="dialog" aria-label="Choose an icon">
+        <div class="icon-picker-head">
+          <input id="iconSearch" type="text" placeholder="Search icons…" autocomplete="off" />
+          <button id="iconPickerClose" class="icon-picker-close" title="Close" aria-label="Close">✕</button>
+        </div>
+        <div id="iconPickerBody" class="icon-picker-body"></div>
+      </div>
+    </div>
 
     <script src="popup.js"></script>
   </body>
