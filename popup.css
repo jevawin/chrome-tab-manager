@@ -43,7 +43,8 @@ body {
 }
 
 /* Create new workspace */
-#name { width: 100%; }
+.name-row { display: flex; gap: 6px; align-items: center; }
+.name-row #name { flex: 1; }
 .add-actions { display: flex; gap: 6px; margin-top: 8px; }
 .add-actions .primary { flex: 1; }
 

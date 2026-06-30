@@ -128,6 +128,7 @@ function renderMoveStrip(workspaces, activeWorkspaceId, activeTab) {
   moveNew.hidden = true;
   moveNewName.value = "";
   moveNewGo.disabled = true;
+  if (typeof moveNewIconBox !== "undefined") moveNewIconBox.set(null);
 
   if (!activeTab) {
     moveStrip.hidden = true;
@@ -231,6 +232,14 @@ async function render() {
       input.value = ws.name;
       input.maxLength = 40;
       label.replaceWith(input);
+      // Rename mode also exposes the icon: an icon-box left of the input.
+      // Picking applies immediately via setIcon, so it persists even if the
+      // name edit is cancelled.
+      const rowIconBox = makeIconBox(ws.icon || null);
+      input.parentNode.insertBefore(rowIconBox.el, input);
+      rowIconBox.el.addEventListener("iconpick", async (ev) => {
+        await send({ type: "setIcon", id: ws.id, icon: ev.detail });
+      });
       input.focus();
       input.select();
 
@@ -312,7 +321,7 @@ moveNewName.addEventListener("keydown", (e) => {
 
 moveNewGo.addEventListener("click", async () => {
   if (moveNewGo.disabled) return;
-  await send({ type: "moveTabToNew", name: moveNewName.value.trim() });
+  await send({ type: "moveTabToNew", name: moveNewName.value.trim(), icon: moveNewIconBox.get() || undefined });
   // Move-to-new follows the tab into the new workspace, so close the popup like
   // a switch does — the window has already changed underneath it.
   window.close();
@@ -320,15 +329,16 @@ moveNewGo.addEventListener("click", async () => {
 
 saveEl.addEventListener("click", async () => {
   if (saveEl.disabled) return;
-  await send({ type: "create", name: nameEl.value });
+  await send({ type: "create", name: nameEl.value, icon: nameIconBox.get() || undefined });
   nameEl.value = "";
+  nameIconBox.set(null);
   syncButtons();
   render();
 });
 
 emptyEl.addEventListener("click", async () => {
   if (emptyEl.disabled) return;
-  await send({ type: "createEmpty", name: nameEl.value });
+  await send({ type: "createEmpty", name: nameEl.value, icon: nameIconBox.get() || undefined });
   window.close(); // Start empty swaps the window; close the popup like a switch.
 });
 
@@ -455,6 +465,12 @@ function makeIconBox(initial) {
   });
   return { el, get: () => icon, set: (next) => { icon = next || null; paint(); } };
 }
+
+// Mount the two "new workspace" icon-boxes (selection held until submit).
+const nameIconBox = makeIconBox(null);
+document.getElementById("nameIconSlot").appendChild(nameIconBox.el);
+const moveNewIconBox = makeIconBox(null);
+document.getElementById("moveNewIconSlot").appendChild(moveNewIconBox.el);
 
 syncButtons();
 render();
