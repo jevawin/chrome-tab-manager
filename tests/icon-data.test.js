@@ -23,3 +23,14 @@ test("excluded icons are absent from the pickable set", () => {
   const names = new Set(data.map((e) => e.name));
   for (const n of EXCLUDED) assert.ok(!names.has(n), `${n} must be excluded`);
 });
+
+test("categories are varied (sourcing actually worked)", () => {
+  const cats = new Set(data.map((e) => e.category));
+  assert.ok(cats.size >= 5, `expected >=5 distinct categories, got ${cats.size}`);
+  const other = data.filter((e) => e.category === "Other").length;
+  const otherShare = other / data.length;
+  assert.ok(
+    otherShare < 0.2,
+    `too many uncategorised: ${other}/${data.length} (${(otherShare * 100).toFixed(1)}%) are "Other"`
+  );
+});

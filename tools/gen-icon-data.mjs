@@ -4,7 +4,13 @@
 // rsvg-convert PNG regeneration documented in CLAUDE.md.
 
 import { execSync } from "node:child_process";
-import { mkdtempSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+  readdirSync,
+  existsSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -14,6 +20,7 @@ const EXCLUDE = new Set([
 ]);
 
 // 1. Pull the pinned package tarball into a temp dir (nothing lands in the repo).
+//    lucide-static gives us the rendered SVG node geometry (icon-nodes.json).
 const dir = mkdtempSync(join(tmpdir(), "lucide-"));
 execSync(`npm pack lucide-static@${LUCIDE_VERSION}`, { cwd: dir, stdio: "inherit" });
 const tgz = readdirSync(dir).find((f) => f.endsWith(".tgz"));
@@ -22,32 +29,72 @@ const pkg = join(dir, "package");
 
 // 2. name -> SVG node array (the core geometry).
 const iconNodes = JSON.parse(readFileSync(join(pkg, "icon-nodes.json"), "utf8"));
-// name -> search tags (default [] if the package build lacks tags.json).
-let tags = {};
-try { tags = JSON.parse(readFileSync(join(pkg, "tags.json"), "utf8")); } catch { /* name-only search */ }
-// category -> [names]; inverted to name -> category. Optional.
-const categoryOf = {};
-try {
-  const cats = JSON.parse(readFileSync(join(pkg, "categories.json"), "utf8"));
-  for (const [cat, names] of Object.entries(cats)) {
-    for (const n of names) if (!categoryOf[n]) categoryOf[n] = cat;
-  }
-} catch { /* leave uncategorised -> "Other" */ }
+// name -> search tags from the static build (fallback if the repo lacks them).
+let staticTags = {};
+try { staticTags = JSON.parse(readFileSync(join(pkg, "tags.json"), "utf8")); } catch { /* name-only search */ }
 
-// 3. Serialise nodes into the inner markup ICON_SVG() wraps.
+// 3. Categories (and richer tags) come from the Lucide SOURCE repo at the SAME
+//    pinned tag. lucide-static does not ship categories.json, but the source
+//    repo carries per-icon metadata in icons/<name>.json:
+//      { "tags": [...], "categories": [...] }
+//    The repo tags releases by bare version (no "v" prefix).
+const categoryOf = {};
+const repoTags = {};
+const titleCase = (s) =>
+  String(s)
+    .split(/[-\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+try {
+  const srcUrl = `https://codeload.github.com/lucide-icons/lucide/tar.gz/refs/tags/${LUCIDE_VERSION}`;
+  // -f makes curl exit non-zero on HTTP errors (e.g. a 404 for a missing tag),
+  // so a bad tag throws here and we degrade to "Other" rather than untar garbage.
+  execSync(`curl -fsSL -o lucide-src.tgz "${srcUrl}"`, { cwd: dir, stdio: "inherit" });
+  execSync(`tar -xzf lucide-src.tgz`, { cwd: dir });
+  const iconsDir = join(dir, `lucide-${LUCIDE_VERSION}`, "icons");
+  if (!existsSync(iconsDir)) throw new Error(`icons dir missing: ${iconsDir}`);
+  for (const f of readdirSync(iconsDir)) {
+    if (!f.endsWith(".json")) continue;
+    const name = f.slice(0, -5);
+    let meta;
+    try { meta = JSON.parse(readFileSync(join(iconsDir, f), "utf8")); } catch { continue; }
+    // An icon may list several categories; take the first for a single bucket.
+    const cat = Array.isArray(meta.categories) && meta.categories[0];
+    if (cat) categoryOf[name] = titleCase(cat);
+    if (Array.isArray(meta.tags) && meta.tags.length) repoTags[name] = meta.tags;
+  }
+} catch (e) {
+  // Couldn't fetch/parse the source repo: leave everything uncategorised.
+  console.warn(`category source unavailable, falling back to "Other": ${e.message}`);
+}
+
+// 4. Serialise nodes into the inner markup ICON_SVG() wraps.
 const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 const serialize = (nodes) =>
   nodes.map(([tag, attrs]) =>
     `<${tag} ${Object.entries(attrs).map(([k, v]) => `${k}="${esc(v)}"`).join(" ")}/>`
   ).join("");
 
-// 4. Build, dropping the app's own UI icons + the default sentinel.
+// 5. Build, dropping the app's own UI icons + the default sentinel.
+//    Prefer the repo's per-icon tags (kept in sync with categories from the same
+//    source); fall back to lucide-static's tags.json so search never regresses.
 const out = [];
 for (const [name, nodes] of Object.entries(iconNodes)) {
   if (EXCLUDE.has(name)) continue;
-  out.push({ name, category: categoryOf[name] || "Other", tags: tags[name] || [], paths: serialize(nodes) });
+  out.push({
+    name,
+    category: categoryOf[name] || "Other",
+    tags: repoTags[name] || staticTags[name] || [],
+    paths: serialize(nodes),
+  });
 }
 out.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
 
 writeFileSync(new URL("../icon-data.json", import.meta.url), JSON.stringify(out));
-console.log(`wrote icon-data.json: ${out.length} icons (lucide ${LUCIDE_VERSION})`);
+const cats = new Set(out.map((e) => e.category));
+const other = out.filter((e) => e.category === "Other").length;
+console.log(
+  `wrote icon-data.json: ${out.length} icons (lucide ${LUCIDE_VERSION}), ` +
+    `${cats.size} categories, ${other} "Other" (${((other / out.length) * 100).toFixed(1)}%)`
+);
