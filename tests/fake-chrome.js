@@ -17,6 +17,7 @@ function makeChrome({ local = {}, tabs = [] }) {
   const query = (q = {}) => {
     let res = tabStore.slice();
     if (q.windowId != null) res = res.filter((t) => t.windowId === q.windowId);
+    // single-window model: lastFocusedWindow matches everything
     if (q.active) res = res.filter((t) => t.active);
     return Promise.resolve(structuredClone(res));
   };
@@ -41,6 +42,7 @@ function makeChrome({ local = {}, tabs = [] }) {
       },
       remove: (ids) => {
         const arr = Array.isArray(ids) ? ids : [ids];
+        // Mimic Chrome: if the active tab was closed, activate a neighbour.
         const closedActive = tabStore.some((t) => arr.includes(t.id) && t.active);
         tabStore = tabStore.filter((t) => !arr.includes(t.id));
         if (closedActive && tabStore.length && !tabStore.some((t) => t.active)) {

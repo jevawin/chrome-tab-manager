@@ -143,6 +143,9 @@ function cleanName(name) {
 // Cap on stored icon path markup — guards storage against absurd payloads.
 const MAX_ICON_PATHS = 4096;
 
+// TRUST BOUNDARY: `paths` is injected via innerHTML (ICON_SVG in popup.js) and is
+// trusted ONLY because it originates from the extension's own committed icon dataset,
+// never from web content. Do not wire an untrusted source into setIcon or create.
 // Validate/normalize an icon picked in the popup before it is stored.
 // Returns a clean { name, paths } or null (null => the record gets no icon and
 // renders the default sentinel). Kept pure so it is unit-testable without Chrome.
@@ -411,5 +414,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 // Exported for unit tests (Node). Harmless no-op in the service worker.
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = { buildMovedState, moveActiveTab, moveActiveTabToNew, normalizeIcon, createWorkspace, setWorkspaceIcon };
+  module.exports = { buildMovedState, moveActiveTab, moveActiveTabToNew, normalizeIcon, createWorkspace, createEmptyWorkspace, setWorkspaceIcon };
 }

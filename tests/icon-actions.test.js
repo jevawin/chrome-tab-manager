@@ -7,7 +7,7 @@ globalThis.chrome = {
 const { test } = require("node:test");
 const assert = require("node:assert");
 const { makeChrome } = require("./fake-chrome");
-const { createWorkspace, setWorkspaceIcon, moveActiveTabToNew } = require("../background.js");
+const { createWorkspace, createEmptyWorkspace, setWorkspaceIcon, moveActiveTabToNew } = require("../background.js");
 
 const ICON = { name: "rocket", paths: "<path d=\"M1 1\"/>" };
 const oneWindow = () => [
@@ -43,10 +43,19 @@ test("setWorkspaceIcon sets then clears a record's icon", async () => {
 });
 
 test("setWorkspaceIcon is a no-op for an unknown id", async () => {
-  const fake = makeChrome({ local: { workspaces: [{ id: "a", name: "A", tabs: [] }], activeWorkspaceId: "a" } });
+  // Seed with an icon so the assertion is meaningful — we verify it is untouched.
+  const fake = makeChrome({ local: { workspaces: [{ id: "a", name: "A", tabs: [], icon: ICON }], activeWorkspaceId: "a" } });
   globalThis.chrome = fake;
   await setWorkspaceIcon("nope", ICON);
-  assert.ok(!("icon" in fake._peek.local().workspaces[0]));
+  assert.deepStrictEqual(fake._peek.local().workspaces[0].icon, ICON);
+});
+
+test("createEmptyWorkspace stores a valid icon on the new record", async () => {
+  const fake = makeChrome({ tabs: oneWindow() });
+  globalThis.chrome = fake;
+  const ws = await createEmptyWorkspace("Empty", ICON);
+  const stored = fake._peek.local().workspaces.find((w) => w.id === ws.id);
+  assert.deepStrictEqual(stored.icon, ICON);
 });
 
 test("moveActiveTabToNew seeds the new workspace with an icon", async () => {

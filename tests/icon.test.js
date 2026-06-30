@@ -26,7 +26,14 @@ test("normalizeIcon rejects blank fields", () => {
 });
 
 test("normalizeIcon rejects oversized paths", () => {
-  assert.strictEqual(normalizeIcon({ name: "x", paths: "<path/>".repeat(1000) }), null);
+  assert.strictEqual(normalizeIcon({ name: "x", paths: "<path/>".repeat(1000) }), null); // ~7000 chars, well above 4096 cap
+});
+
+test("normalizeIcon accepts paths at exactly the 4096 limit", () => {
+  assert.ok(normalizeIcon({ name: "x", paths: "a".repeat(4096) }));
+});
+test("normalizeIcon rejects paths one char over the 4096 limit", () => {
+  assert.strictEqual(normalizeIcon({ name: "x", paths: "a".repeat(4097) }), null);
 });
 
 test("normalizeIcon returns null for null/undefined/non-object", () => {
