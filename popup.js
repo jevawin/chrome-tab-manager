@@ -86,13 +86,10 @@ const ICON_CHECK = ICON_SVG('<path d="M20 6 9 17l-5-5"/>'); // check
 
 // Default leading glyph for a workspace with no chosen icon. Hardcoded (not from
 // icon-data.json) so a row renders without loading the dataset. Lucide
-// "square-dashed" — a quiet placeholder that reads as "no icon set yet".
-const ICON_SQUARE_DASHED = ICON_SVG(
-  '<path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/>' +
-    '<path d="M21 19a2 2 0 0 1-2 2"/><path d="M5 21a2 2 0 0 1-2-2"/>' +
-    '<path d="M9 3h1"/><path d="M9 21h1"/><path d="M14 3h1"/><path d="M14 21h1"/>' +
-    '<path d="M3 9v1"/><path d="M21 9v1"/><path d="M3 14v1"/><path d="M21 14v1"/>'
-); // square-dashed (verify against lucide.dev/icons/square-dashed at the pinned version)
+// "ellipsis" — a quiet placeholder that reads as "no icon set yet".
+const ICON_ELLIPSIS = ICON_SVG(
+  '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>'
+); // ellipsis (verify against lucide.dev/icons/ellipsis at the pinned version)
 
 // Active-row count glyph: the whole folder filled solid (vs ICON_FOLDER's
 // flap-only fill). Mimics Chrome's active-tab look; this is a fill change, not a
@@ -188,7 +185,7 @@ async function render() {
     // Leading slot: the workspace's chosen icon, or the default sentinel.
     const wsIcon = document.createElement("span");
     wsIcon.className = "ws-icon";
-    wsIcon.innerHTML = ws.icon && ws.icon.paths ? ICON_SVG(ws.icon.paths) : ICON_SQUARE_DASHED;
+    wsIcon.innerHTML = ws.icon && ws.icon.paths ? ICON_SVG(ws.icon.paths) : ICON_ELLIPSIS;
 
     const label = document.createElement("span");
     label.className = "label";
@@ -456,7 +453,7 @@ function makeIconBox(initial) {
   const el = document.createElement("button");
   el.type = "button";
   el.className = "icon-box";
-  const paint = () => { el.innerHTML = icon && icon.paths ? ICON_SVG(icon.paths) : ICON_SQUARE_DASHED; };
+  const paint = () => { el.innerHTML = icon && icon.paths ? ICON_SVG(icon.paths) : ICON_ELLIPSIS; };
   paint();
   el.addEventListener("click", async (e) => {
     e.stopPropagation();

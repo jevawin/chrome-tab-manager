@@ -85,7 +85,7 @@ Persistent state in `chrome.storage.local`:
 ```
 
 `icon` is optional. `icon.paths` (the Lucide inner SVG markup) is stored so a row
-renders without loading `icon-data.json`. Absent `icon` renders the `square-dashed`
+renders without loading `icon-data.json`. Absent `icon` renders the `ellipsis`
 default sentinel. Backward compatible: existing workspaces have no `icon` field.
 
 Transient guard in `chrome.storage.session`:

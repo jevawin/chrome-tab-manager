@@ -16,7 +16,7 @@ import { join } from "node:path";
 
 const LUCIDE_VERSION = "0.544.0"; // pin deliberately; bump on purpose
 const EXCLUDE = new Set([
-  "square-pen", "trash-2", "save", "folder-plus", "list-end", "check", "folder", "square-dashed",
+  "square-pen", "trash-2", "save", "folder-plus", "list-end", "check", "folder", "ellipsis",
 ]);
 
 // 1. Pull the pinned package tarball into a temp dir (nothing lands in the repo).

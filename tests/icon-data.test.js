@@ -2,7 +2,7 @@ const { test } = require("node:test");
 const assert = require("node:assert");
 const data = require("../icon-data.json");
 
-const EXCLUDED = ["square-pen", "trash-2", "save", "folder-plus", "list-end", "check", "folder", "square-dashed"];
+const EXCLUDED = ["square-pen", "trash-2", "save", "folder-plus", "list-end", "check", "folder", "ellipsis"];
 
 test("icon-data.json is a large array", () => {
   assert.ok(Array.isArray(data));
