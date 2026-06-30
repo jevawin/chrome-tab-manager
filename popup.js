@@ -358,15 +358,21 @@ function closePicker(result) {
 
 // Render the grid from a dataset, grouped by category when no query, flat when
 // searching (search matches name + tags; synonyms surface via Lucide tags).
-function renderPickerGrid(data, query) {
+// `current` (the box's existing selection) gets marked + scrolled into view.
+function renderPickerGrid(data, query, current) {
   const q = query.trim().toLowerCase();
   pickerBody.innerHTML = "";
 
+  let selectedCell = null; // the one cell matching `current`, scrolled to after.
   const cell = (icon) => {
     const b = document.createElement("button");
     b.className = "icon-cell";
     b.title = icon.name;
     b.innerHTML = ICON_SVG(icon.paths);
+    if (current && icon.name === current.name) {
+      b.classList.add("selected");
+      selectedCell = b;
+    }
     b.addEventListener("click", () => closePicker({ name: icon.name, paths: icon.paths }));
     return b;
   };
@@ -379,6 +385,7 @@ function renderPickerGrid(data, query) {
     grid.className = "icon-grid";
     for (const i of hits) grid.appendChild(cell(i));
     pickerBody.appendChild(grid);
+    if (selectedCell) selectedCell.scrollIntoView({ block: "center" });
     return;
   }
 
@@ -397,10 +404,12 @@ function renderPickerGrid(data, query) {
     }
     grid.appendChild(cell(i));
   }
+  if (selectedCell) selectedCell.scrollIntoView({ block: "center" });
 }
 
 // Open the picker; resolves with the chosen { name, paths } or null on dismiss.
-function openIconPicker() {
+// `current` (the caller's existing selection) is highlighted + scrolled to.
+function openIconPicker(current) {
   return new Promise((resolve) => {
     pickerResolve = resolve;
     pickerEl.hidden = false;
@@ -411,11 +420,13 @@ function openIconPicker() {
     loadIconData().then(
       (data) => {
         if (pickerResolve !== resolve) return; // dismissed before load finished
-        renderPickerGrid(data, "");
-        pickerSearch.oninput = () => renderPickerGrid(data, pickerSearch.value);
+        renderPickerGrid(data, "", current);
+        // Search clears the highlight (the current icon may not be in the hits).
+        pickerSearch.oninput = () => renderPickerGrid(data, pickerSearch.value, current);
       },
       () => {
         if (pickerResolve !== resolve) return;
+        _iconData = null; // drop the cached rejection so the next open retries.
         pickerBody.innerHTML = '<div class="icon-picker-status">Couldn\'t load icons.</div>';
       }
     );
@@ -439,7 +450,7 @@ function makeIconBox(initial) {
   paint();
   el.addEventListener("click", async (e) => {
     e.stopPropagation();
-    const picked = await openIconPicker();
+    const picked = await openIconPicker(icon);
     if (picked) { icon = picked; paint(); el.dispatchEvent(new CustomEvent("iconpick", { detail: picked })); }
   });
   return { el, get: () => icon, set: (next) => { icon = next || null; paint(); } };
