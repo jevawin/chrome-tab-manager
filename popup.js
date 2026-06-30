@@ -84,6 +84,23 @@ const ICON_FOLDER = ICON_SVG(
 
 const ICON_CHECK = ICON_SVG('<path d="M20 6 9 17l-5-5"/>'); // check
 
+// Default leading glyph for a workspace with no chosen icon. Hardcoded (not from
+// icon-data.json) so a row renders without loading the dataset. Lucide
+// "square-dashed" — a quiet placeholder that reads as "no icon set yet".
+const ICON_SQUARE_DASHED = ICON_SVG(
+  '<path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/>' +
+    '<path d="M21 19a2 2 0 0 1-2 2"/><path d="M5 21a2 2 0 0 1-2-2"/>' +
+    '<path d="M9 3h1"/><path d="M9 21h1"/><path d="M14 3h1"/><path d="M14 21h1"/>' +
+    '<path d="M3 9v1"/><path d="M21 9v1"/><path d="M3 14v1"/><path d="M21 14v1"/>'
+); // square-dashed (verify against lucide.dev/icons/square-dashed at the pinned version)
+
+// Active-row count glyph: the whole folder filled solid (vs ICON_FOLDER's
+// flap-only fill). Mimics Chrome's active-tab look; this is a fill change, not a
+// colour tint, so it stays neutral/green like the inactive glyph.
+const ICON_FOLDER_SOLID = ICON_SVG(
+  '<path fill="currentColor" stroke="none" d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
+); // folder, fully solid
+
 // Name is mandatory: both create buttons stay disabled until the
 // field holds non-whitespace text.
 function syncButtons() {
@@ -153,8 +170,10 @@ async function render() {
     li.className =
       "item" + (ws.id === activeWorkspaceId ? " active" : "") + (confirming ? " confirming" : "");
 
-    const dot = document.createElement("span");
-    dot.className = "dot";
+    // Leading slot: the workspace's chosen icon, or the default sentinel.
+    const wsIcon = document.createElement("span");
+    wsIcon.className = "ws-icon";
+    wsIcon.innerHTML = ws.icon && ws.icon.paths ? ICON_SVG(ws.icon.paths) : ICON_SQUARE_DASHED;
 
     const label = document.createElement("span");
     label.className = "label";
@@ -164,7 +183,7 @@ async function render() {
     const count = document.createElement("span");
     count.className = "count";
     const n = ws.tabs ? ws.tabs.length : 0;
-    count.innerHTML = ICON_FOLDER + `<span class="count-n">${n}</span>`;
+    count.innerHTML = (ws.id === activeWorkspaceId ? ICON_FOLDER_SOLID : ICON_FOLDER) + `<span class="count-n">${n}</span>`;
     count.title = n === 1 ? "1 tab" : n + " tabs";
 
     const edit = document.createElement("button");
@@ -249,7 +268,7 @@ async function render() {
       right.append(count, rowIcons);
     }
 
-    li.append(dot, label, right);
+    li.append(wsIcon, label, right);
     listEl.appendChild(li);
   }
 }

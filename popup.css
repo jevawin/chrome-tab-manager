@@ -91,11 +91,11 @@ body {
 }
 .item:hover { background: #2a2a30; }
 
-.dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: transparent; flex: 0 0 auto;
+.ws-icon {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--fg); flex: 0 0 auto;
 }
-.item.active .dot { background: var(--accent); }
+.ws-icon svg { width: 16px; height: 16px; }
 .item.active .label { color: var(--accent); font-weight: 600; }
 
 /* Name takes the slack so the count + actions get pushed to the right edge. */
