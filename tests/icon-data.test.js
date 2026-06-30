@@ -6,7 +6,7 @@ const EXCLUDED = ["square-pen", "trash-2", "save", "folder-plus", "list-end", "c
 
 test("icon-data.json is a large array", () => {
   assert.ok(Array.isArray(data));
-  assert.ok(data.length > 100, `expected many icons, got ${data.length}`);
+  assert.ok(data.length > 1000, `expected many icons, got ${data.length}`);
 });
 
 test("every entry has name/category/tags/paths of the right shape", () => {
@@ -16,6 +16,7 @@ test("every entry has name/category/tags/paths of the right shape", () => {
     assert.ok(Array.isArray(e.tags));
     assert.strictEqual(typeof e.paths, "string");
     assert.ok(e.paths.includes("<"), `paths should be SVG markup for ${e.name}`);
+    assert.ok(!e.paths.includes("<svg"), `${e.name} paths must be inner markup only`);
   }
 });
 

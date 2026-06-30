@@ -24,7 +24,7 @@ const EXCLUDE = new Set([
 const dir = mkdtempSync(join(tmpdir(), "lucide-"));
 execSync(`npm pack lucide-static@${LUCIDE_VERSION}`, { cwd: dir, stdio: "inherit" });
 const tgz = readdirSync(dir).find((f) => f.endsWith(".tgz"));
-execSync(`tar -xzf ${tgz}`, { cwd: dir });
+execSync(`tar -xzf "${tgz}"`, { cwd: dir });
 const pkg = join(dir, "package");
 
 // 2. name -> SVG node array (the core geometry).
@@ -72,9 +72,12 @@ try {
 // 4. Serialise nodes into the inner markup ICON_SVG() wraps.
 const esc = (v) => String(v).replace(/&/g, "&amp;").replace(/"/g, "&quot;");
 const serialize = (nodes) =>
-  nodes.map(([tag, attrs]) =>
-    `<${tag} ${Object.entries(attrs).map(([k, v]) => `${k}="${esc(v)}"`).join(" ")}/>`
-  ).join("");
+  nodes.map(([tag, attrs]) => {
+    // Only prepend a space when there are attrs, so a zero-attr node emits
+    // `<tag/>` rather than a stray-space `<tag />`.
+    const a = Object.entries(attrs).map(([k, v]) => `${k}="${esc(v)}"`).join(" ");
+    return `<${tag}${a ? " " + a : ""}/>`;
+  }).join("");
 
 // 5. Build, dropping the app's own UI icons + the default sentinel.
 //    Prefer the repo's per-icon tags (kept in sync with categories from the same
