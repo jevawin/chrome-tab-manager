@@ -221,7 +221,9 @@ async function render() {
       window.close();
     });
 
-    // Inline rename: swap the label for an input in place.
+    // Inline rename: swap the label for an input, and turn the row's leading
+    // icon into an editable icon-box in its place (the static icon is hidden,
+    // not duplicated).
     edit.addEventListener("click", (e) => {
       e.stopPropagation();
       const input = document.createElement("input");
@@ -229,13 +231,16 @@ async function render() {
       input.value = ws.name;
       input.maxLength = 40;
       label.replaceWith(input);
-      // Rename mode also exposes the icon: an icon-box left of the input.
-      // Picking applies immediately via setIcon, so it persists even if the
-      // name edit is cancelled.
+
+      // Leading slot becomes editable: hide the static icon, drop the icon-box
+      // into its place. Picking applies immediately via setIcon, so it persists
+      // even if the name edit is cancelled.
       const rowIconBox = makeIconBox(ws.icon || null);
-      input.parentNode.insertBefore(rowIconBox.el, input);
+      wsIcon.hidden = true;
+      wsIcon.parentNode.insertBefore(rowIconBox.el, wsIcon);
       rowIconBox.el.addEventListener("iconpick", async (ev) => {
         await send({ type: "setIcon", id: ws.id, icon: ev.detail });
+        input.focus(); // return to name editing after the picker closes
       });
       input.focus();
       input.select();
@@ -256,7 +261,9 @@ async function render() {
         if (ev.key === "Enter") { ev.preventDefault(); commit(); }
         if (ev.key === "Escape") { ev.preventDefault(); cancel(); }
       });
-      input.addEventListener("blur", commit);
+      // Don't commit when focus leaves because the icon picker opened — that's
+      // still part of editing this row. Commit only on a real blur.
+      input.addEventListener("blur", () => { if (pickerEl.hidden) commit(); });
     });
 
     // First trash click arms the confirm; the tick (same button) commits.
@@ -455,6 +462,10 @@ function makeIconBox(initial) {
   el.className = "icon-box";
   const paint = () => { el.innerHTML = icon && icon.paths ? ICON_SVG(icon.paths) : ICON_ELLIPSIS; };
   paint();
+  // Don't steal focus on press: in an inline rename the box sits next to the
+  // name input, and a focus shift would blur-commit the name mid-edit before
+  // the click can open the picker.
+  el.addEventListener("mousedown", (e) => e.preventDefault());
   el.addEventListener("click", async (e) => {
     e.stopPropagation();
     const picked = await openIconPicker(icon);
