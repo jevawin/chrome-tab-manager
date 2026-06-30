@@ -48,6 +48,17 @@
       <ul id="list" class="list"></ul>
     </section>
 
+    <div id="iconPicker" class="icon-picker" hidden>
+      <div class="icon-picker-scrim"></div>
+      <div class="icon-picker-panel" role="dialog" aria-label="Choose an icon">
+        <div class="icon-picker-head">
+          <input id="iconSearch" type="text" placeholder="Search icons…" autocomplete="off" />
+          <button id="iconPickerClose" class="icon-picker-close" title="Close" aria-label="Close">✕</button>
+        </div>
+        <div id="iconPickerBody" class="icon-picker-body"></div>
+      </div>
+    </div>
+
     <script src="popup.js"></script>
   </body>
 </html>

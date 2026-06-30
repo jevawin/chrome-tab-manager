@@ -101,6 +101,20 @@ const ICON_FOLDER_SOLID = ICON_SVG(
   '<path fill="currentColor" stroke="none" d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>'
 ); // folder, fully solid
 
+const ICON_LOADER = ICON_SVG('<path d="M21 12a9 9 0 1 1-6.219-8.56"/>'); // loader-circle
+
+// Lazily fetch the committed icon dataset, once, on first picker open. The
+// workspace list never loads it (rows render from stored paths / the sentinel).
+let _iconData = null;
+function loadIconData() {
+  if (_iconData) return _iconData;
+  _iconData = fetch("icon-data.json").then((r) => {
+    if (!r.ok) throw new Error("icon-data fetch failed: " + r.status);
+    return r.json();
+  });
+  return _iconData;
+}
+
 // Name is mandatory: both create buttons stay disabled until the
 // field holds non-whitespace text.
 function syncButtons() {
@@ -323,6 +337,113 @@ nameEl.addEventListener("input", syncButtons);
 nameEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter") saveEl.click();
 });
+
+// ---------- Icon picker (pure presentation) ----------
+const pickerEl = document.getElementById("iconPicker");
+const pickerSearch = document.getElementById("iconSearch");
+const pickerBody = document.getElementById("iconPickerBody");
+const pickerClose = document.getElementById("iconPickerClose");
+const pickerScrim = pickerEl.querySelector(".icon-picker-scrim");
+
+let pickerResolve = null; // resolver for the in-flight openIconPicker() promise
+
+function closePicker(result) {
+  pickerEl.hidden = true;
+  pickerBody.innerHTML = "";
+  pickerSearch.value = "";
+  const r = pickerResolve;
+  pickerResolve = null;
+  if (r) r(result);
+}
+
+// Render the grid from a dataset, grouped by category when no query, flat when
+// searching (search matches name + tags; synonyms surface via Lucide tags).
+function renderPickerGrid(data, query) {
+  const q = query.trim().toLowerCase();
+  pickerBody.innerHTML = "";
+
+  const cell = (icon) => {
+    const b = document.createElement("button");
+    b.className = "icon-cell";
+    b.title = icon.name;
+    b.innerHTML = ICON_SVG(icon.paths);
+    b.addEventListener("click", () => closePicker({ name: icon.name, paths: icon.paths }));
+    return b;
+  };
+
+  if (q) {
+    const hits = data.filter(
+      (i) => i.name.toLowerCase().includes(q) || i.tags.some((t) => t.toLowerCase().includes(q))
+    );
+    const grid = document.createElement("div");
+    grid.className = "icon-grid";
+    for (const i of hits) grid.appendChild(cell(i));
+    pickerBody.appendChild(grid);
+    return;
+  }
+
+  // Grouped: category header + grid, in dataset order (already sorted by category).
+  let currentCat = null, grid = null;
+  for (const i of data) {
+    if (i.category !== currentCat) {
+      currentCat = i.category;
+      const h = document.createElement("div");
+      h.className = "icon-picker-cat";
+      h.textContent = currentCat;
+      pickerBody.appendChild(h);
+      grid = document.createElement("div");
+      grid.className = "icon-grid";
+      pickerBody.appendChild(grid);
+    }
+    grid.appendChild(cell(i));
+  }
+}
+
+// Open the picker; resolves with the chosen { name, paths } or null on dismiss.
+function openIconPicker() {
+  return new Promise((resolve) => {
+    pickerResolve = resolve;
+    pickerEl.hidden = false;
+    pickerSearch.value = "";
+    pickerBody.innerHTML = '<div class="icon-picker-status"><span class="icon-spin">' + ICON_LOADER + "</span> Loading icons…</div>";
+    pickerSearch.focus();
+
+    loadIconData().then(
+      (data) => {
+        if (pickerResolve !== resolve) return; // dismissed before load finished
+        renderPickerGrid(data, "");
+        pickerSearch.oninput = () => renderPickerGrid(data, pickerSearch.value);
+      },
+      () => {
+        if (pickerResolve !== resolve) return;
+        pickerBody.innerHTML = '<div class="icon-picker-status">Couldn\'t load icons.</div>';
+      }
+    );
+  });
+}
+
+pickerClose.addEventListener("click", () => closePicker(null));
+pickerScrim.addEventListener("click", () => closePicker(null));
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && !pickerEl.hidden) { e.preventDefault(); closePicker(null); }
+});
+
+// A reusable icon-box: square button showing an icon; click opens the picker.
+// get()/set() expose the current { name, paths } | null selection.
+function makeIconBox(initial) {
+  let icon = initial || null;
+  const el = document.createElement("button");
+  el.type = "button";
+  el.className = "icon-box";
+  const paint = () => { el.innerHTML = icon && icon.paths ? ICON_SVG(icon.paths) : ICON_SQUARE_DASHED; };
+  paint();
+  el.addEventListener("click", async (e) => {
+    e.stopPropagation();
+    const picked = await openIconPicker();
+    if (picked) { icon = picked; paint(); el.dispatchEvent(new CustomEvent("iconpick", { detail: picked })); }
+  });
+  return { el, get: () => icon, set: (next) => { icon = next || null; paint(); } };
+}
 
 syncButtons();
 render();
